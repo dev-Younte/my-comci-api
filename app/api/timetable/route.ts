@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchComciTimetable } from '@/utils/comci-crawler'; // 경로에 맞게 수정
+import { fetchComciTimetable } from '../../../utils/comci-crawler';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
