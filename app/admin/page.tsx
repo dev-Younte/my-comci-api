@@ -228,7 +228,7 @@ export default function AdminPage() {
       borderRadius: '24px',
       zIndex: 2000
     }}>
-      <div style={{ display: 'flex', flexDirection: 'column', items: 'center', gap: '15px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
         <div style={{
           width: '40px',
           height: '40px',
