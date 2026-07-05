@@ -27,11 +27,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Supabase students 테이블에서 학생 기등록 정보 조회
+    // 1. Supabase students 테이블에서 학생 정보가 정확하게 일치하는지 조회 (사전 등록 체크)
     const { data: student, error: studentError } = await supabase
       .from('students')
       .select('*')
       .eq('student_id', studentId)
+      .eq('name', name)
+      .eq('phone', phone)
       .maybeSingle();
 
     if (studentError) {
@@ -44,8 +46,16 @@ export async function POST(request: Request) {
 
     const studentData = student as StudentRow | null;
 
+    // 일치하는 학생 정보가 데이터베이스에 존재하지 않는 경우 즉시 가입 거부
+    if (!studentData) {
+      return NextResponse.json(
+        { success: false, message: '일치하는 학생 정보가 존재하지 않습니다.' },
+        { status: 200 }
+      );
+    }
+
     // 2. 이미 등록 완료되었고(is_locked = true) 등록된 기기 정보와 현재 기기가 다를 경우 차단
-    if (studentData && studentData.is_locked) {
+    if (studentData.is_locked) {
       if (studentData.device_id && studentData.device_id !== deviceId) {
         return new NextResponse(
           JSON.stringify({
@@ -76,7 +86,7 @@ export async function POST(request: Request) {
 
     const expiresAt = new Date(Date.now() + 3 * 60 * 1000).toISOString(); // 3분 후 만료
 
-    // 5. sms_codes 테이블에 기록 (학생 행은 생성하지 않음)
+    // 5. sms_codes 테이블에 기록
     const { error: insertError } = await supabase
       .from('sms_codes')
       .insert({

@@ -108,7 +108,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. students 테이블 조회 및 기등록 여부 검사
+    // 5. students 테이블 조회 (사전 등록된 행만 찾음)
     const { data: student, error: studentError } = await supabase
       .from('students')
       .select('*')
@@ -125,66 +125,51 @@ export async function POST(request: Request) {
 
     const studentData = student as StudentRow | null;
 
-    if (studentData) {
-      // 기존에 이미 학적이 등록되어 있는 경우
-      if (studentData.is_locked && studentData.device_id && studentData.device_id !== deviceId) {
-        return new NextResponse(
-          JSON.stringify({
-            success: false,
-            code: 'DEVICE_ALREADY_REGISTERED',
-            message: '이미 다른 기기가 등록되어 있습니다. 본인 기기가 아니라면 관리자에게 문의해 주세요.'
-          }),
-          {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'POST, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-            }
+    if (!studentData) {
+      return NextResponse.json(
+        { success: false, message: '사전 등록된 학생 정보가 존재하지 않습니다.' },
+        { status: 200 }
+      );
+    }
+
+    // 기존에 이미 기기가 등록되어 잠겨있고 요청한 기기와 다른 경우 차단
+    if (studentData.is_locked && studentData.device_id && studentData.device_id !== deviceId) {
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          code: 'DEVICE_ALREADY_REGISTERED',
+          message: '이미 다른 기기가 등록되어 있습니다. 본인 기기가 아니라면 관리자에게 문의해 주세요.'
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
           }
-        );
-      }
+        }
+      );
+    }
 
-      // 기기가 일치하거나, 기존 기기 해제 상태(device_id가 NULL인 상태)인 경우 바인딩 정보 업데이트
-      const { error: updateStudentError } = await supabase
-        .from('students')
-        .update({
-          device_id: deviceId,
-          registered_at: new Date().toISOString(),
-          is_locked: true,
-          name: name,
-          phone: phone
-        })
-        .eq('id', studentData.id);
+    // 사전 등록된 학생 행의 device_id 바인딩 및 잠금 필드 업데이트 (행 추가 안함)
+    const { error: updateStudentError } = await supabase
+      .from('students')
+      .update({
+        device_id: deviceId,
+        registered_at: new Date().toISOString(),
+        is_locked: true,
+        name: name, // 매치된 학생 이름 최종 업데이트 (트림 포함)
+        phone: phone // 매치된 학생 전화번호 최종 업데이트
+      })
+      .eq('id', studentData.id);
 
-      if (updateStudentError) {
-        console.error('Error updating student device binding:', updateStudentError);
-        return NextResponse.json(
-          { success: false, message: '기기 바인딩 업데이트에 실패했습니다.' },
-          { status: 500 }
-        );
-      }
-    } else {
-      // 최초 가입 등록인 경우 (Self-Registration)
-      const { error: insertStudentError } = await supabase
-        .from('students')
-        .insert({
-          student_id: studentId,
-          name: name,
-          phone: phone,
-          device_id: deviceId,
-          registered_at: new Date().toISOString(),
-          is_locked: true
-        });
-
-      if (insertStudentError) {
-        console.error('Error registering new student:', insertStudentError);
-        return NextResponse.json(
-          { success: false, message: '학생 등록에 실패했습니다.' },
-          { status: 500 }
-        );
-      }
+    if (updateStudentError) {
+      console.error('Error updating student device binding:', updateStudentError);
+      return NextResponse.json(
+        { success: false, message: '기기 바인딩 업데이트에 실패했습니다.' },
+        { status: 500 }
+      );
     }
 
     return new NextResponse(
