@@ -215,212 +215,211 @@ export default function AdminPage() {
     student.phone.includes(searchTerm)
   );
 
-  // 로딩 오버레이
+  // 로딩 인디케이터
   const renderLoading = () => (
-    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center rounded-2xl z-50">
-      <div className="flex flex-col items-center space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400"></div>
-        <p className="text-sm font-semibold text-cyan-400 tracking-wider">데이터를 처리 중입니다...</p>
+    <div style={{
+      position: 'absolute',
+      inset: 0,
+      background: 'rgba(5, 5, 8, 0.8)',
+      backdropFilter: 'blur(8px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '24px',
+      zIndex: 2000
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', items: 'center', gap: '15px' }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid rgba(0, 198, 255, 0.1)',
+          borderTop: '3px solid #00c6ff',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans select-none overflow-x-hidden relative">
-      {/* 초현대적 네온 백그라운드 글로우 */}
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[50%] rounded-full bg-cyan-500/10 blur-[130px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[50%] rounded-full bg-indigo-500/10 blur-[130px] pointer-events-none"></div>
-      <div className="absolute top-[40%] left-[30%] w-[40%] h-[40%] rounded-full bg-violet-600/5 blur-[150px] pointer-events-none"></div>
+    <div className="admin-page-wrapper">
+      {/* 백그라운드 오르브 조명 */}
+      <div className="admin-glow-orb-1"></div>
+      <div className="admin-glow-orb-2"></div>
 
-      {/* 헤더 (글래스모피즘 스티키) */}
-      <header className="border-b border-white/5 bg-slate-950/60 backdrop-blur-xl sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-tr from-cyan-400 to-indigo-500 rounded-xl flex items-center justify-center font-black text-xl text-slate-950 shadow-lg shadow-cyan-500/20">
-            별
-          </div>
+      {/* 헤더 */}
+      <header className="admin-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="admin-logo-box">별</div>
           <div>
-            <h1 className="text-base font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-50 to-slate-200">
-              별가람고 스마트 출결 관리
-            </h1>
-            <p className="text-[10px] text-cyan-400 font-extrabold tracking-widest uppercase">ADMIN SYSTEM</p>
+            <div className="admin-header-title">별가람고 스마트 출결 관리</div>
+            <div className="admin-header-subtitle">ADMIN SYSTEM</div>
           </div>
         </div>
         {isAuthenticated && (
-          <button 
-            onClick={handleLogout}
-            className="px-4 py-2 rounded-xl border border-white/5 bg-white/5 hover:bg-red-500/10 hover:border-red-500/30 text-xs font-bold text-slate-300 hover:text-red-400 transition duration-300"
-          >
+          <button onClick={handleLogout} className="btn-action">
             로그아웃
           </button>
         )}
       </header>
 
-      {/* 본문 레이아웃 */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-8 flex flex-col justify-center relative">
+      {/* 메인 콘텐츠 */}
+      <main className="admin-main">
         {loading && renderLoading()}
 
         {!isAuthenticated ? (
-          /* 로그인 인터페이스 (글래스모피즘 카드) */
-          <div className="max-w-md w-full mx-auto bg-slate-900/40 border border-white/5 backdrop-blur-2xl p-8 rounded-3xl shadow-2xl shadow-black/40 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-cyan-400 to-indigo-500"></div>
-            
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-black text-white mb-2 tracking-tight">관리자 로그인</h2>
-              <p className="text-xs text-slate-400 leading-relaxed">
+          /* 로그인 인터페이스 */
+          <div className="admin-login-card animate-fade-in">
+            <div className="admin-card-header">
+              <h2 className="admin-card-title">관리자 보안 인증</h2>
+              <p className="admin-card-desc">
                 출결 연동 시스템 조작을 위해 어드민 보안 인증 암호를 입력해주세요.
               </p>
             </div>
             
-            <form onSubmit={handleLoginSubmit} className="space-y-5">
-              <div className="space-y-1">
+            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="admin-input-group">
                 <input 
                   type="password"
                   placeholder="보안 비밀키 입력"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border border-white/5 bg-slate-950/80 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 text-sm font-semibold tracking-wider transition duration-300 text-center"
+                  className="admin-input-text"
+                  style={{ textAlign: 'center', letterSpacing: '0.1em' }}
                 />
               </div>
 
               {error && (
-                <div className="p-3.5 bg-red-500/5 border border-red-500/20 text-red-400 rounded-2xl text-xs font-semibold tracking-wide text-center">
+                <div className="admin-banner admin-banner-error" style={{ justifyContent: 'center' }}>
                   ⚠️ {error}
                 </div>
               )}
 
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-slate-950 font-black text-sm tracking-wide shadow-xl shadow-cyan-500/10 active:scale-[0.98] transition duration-300"
-              >
+              <button type="submit" disabled={loading} className="btn-primary">
                 시스템 인증하기
               </button>
             </form>
           </div>
         ) : (
-          /* 어드민 대시보드 메인 화면 */
-          <div className="flex-1 flex flex-col space-y-6">
+          /* 어드민 대시보드 화면 */
+          <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
-            {/* 대시보드 상단 제어바 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="md:col-span-2 bg-slate-900/30 border border-white/5 backdrop-blur-xl p-2 rounded-2xl flex items-center shadow-lg">
-                <span className="pl-3 text-slate-500">🔍</span>
+            {/* 제어 바 */}
+            <div className="admin-control-bar">
+              <div className="admin-search-wrapper">
+                <span style={{ opacity: 0.5 }}>🔍</span>
                 <input 
                   type="text"
                   placeholder="학생 이름, 학번, 전화번호로 간편 검색..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-transparent text-slate-100 placeholder-slate-600 focus:outline-none text-sm px-2 font-semibold"
+                  className="admin-search-input"
                 />
                 {searchTerm && (
-                  <button 
-                    onClick={() => setSearchTerm('')} 
-                    className="text-xs font-extrabold text-slate-500 hover:text-cyan-400 px-3 transition duration-200"
-                  >
+                  <button onClick={() => setSearchTerm('')} className="admin-search-clear">
                     지우기
                   </button>
                 )}
               </div>
 
-              {/* 신규 학생 등록 버튼 (네온 테두리) */}
-              <button
-                onClick={() => openModal('add')}
-                className="py-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-slate-950 font-black text-sm shadow-xl shadow-cyan-500/10 transition duration-300 active:scale-[0.98]"
-              >
+              <button onClick={() => openModal('add')} className="btn-add-student">
                 + 신규 학생 사전등록
               </button>
 
-              {/* 실시간 카운팅 보드 */}
-              <div className="bg-slate-900/30 border border-white/5 backdrop-blur-xl px-5 py-4 rounded-2xl flex items-center justify-between shadow-lg">
+              <div className="admin-stat-card">
                 <div>
-                  <p className="text-[10px] text-slate-500 font-extrabold tracking-wider uppercase">REGISTRATION RATE</p>
-                  <p className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">
+                  <div className="admin-stat-label">사전등록 현황</div>
+                  <div className="admin-stat-val">
                     {filteredStudents.length} / {students.length} 명
-                  </p>
+                  </div>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 font-black text-sm">
-                  ✓
-                </div>
+                <div className="admin-stat-icon">✓</div>
               </div>
             </div>
 
-            {/* 성공/실패 배너 피드백 */}
+            {/* 피드백 알림 배너 */}
             {successMsg && (
-              <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 text-emerald-400 rounded-2xl text-xs font-bold tracking-wide animate-fadeIn">
+              <div className="admin-banner admin-banner-success">
                 ✓ {successMsg}
               </div>
             )}
             {error && (
-              <div className="p-4 bg-red-500/5 border border-red-500/20 text-red-400 rounded-2xl text-xs font-bold tracking-wide animate-fadeIn">
+              <div className="admin-banner admin-banner-error">
                 ⚠️ {error}
               </div>
             )}
 
-            {/* 메인 명단 글래스모피즘 보드 */}
-            <div className="bg-slate-900/10 border border-white/5 backdrop-blur-2xl rounded-3xl overflow-hidden shadow-2xl flex-1 flex flex-col">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left text-sm">
+            {/* 학생 명단 테이블 */}
+            <div className="admin-table-panel">
+              <div className="admin-table-scroll">
+                <table className="admin-table">
                   <thead>
-                    <tr className="border-b border-white/5 bg-slate-900/30 text-slate-400 text-[11px] font-black tracking-wider uppercase">
-                      <th className="px-6 py-4.5">학번</th>
-                      <th className="px-6 py-4.5">이름</th>
-                      <th className="px-6 py-4.5">전화번호</th>
-                      <th className="px-6 py-4.5">바인딩 기기 식별값</th>
-                      <th className="px-6 py-4.5">인증 완료 시각</th>
-                      <th className="px-6 py-4.5 text-center">출결 조치</th>
+                    <tr>
+                      <th>학번</th>
+                      <th>이름</th>
+                      <th>전화번호</th>
+                      <th>바인딩 기기 식별값</th>
+                      <th>인증 완료 시각</th>
+                      <th style={{ textAlign: 'center' }}>출결 조치</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5 bg-slate-950/5">
+                  <tbody>
                     {filteredStudents.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-16 text-center text-slate-600 font-semibold text-sm">
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.5 }}>
                           현재 조건에 부합하는 학생 정보가 없습니다.
                         </td>
                       </tr>
                     ) : (
                       filteredStudents.map((student) => (
-                        <tr key={student.id} className="hover:bg-white/[0.02] transition-colors duration-300">
-                          <td className="px-6 py-4 font-mono font-bold text-cyan-400 text-sm">{student.student_id}</td>
-                          <td className="px-6 py-4 font-bold text-slate-200 text-sm">{student.name}</td>
-                          <td className="px-6 py-4 text-slate-400 font-mono text-xs">{student.phone}</td>
-                          <td className="px-6 py-4">
+                        <tr key={student.id}>
+                          <td className="admin-table-student-id">{student.student_id}</td>
+                          <td className="admin-table-name">{student.name}</td>
+                          <td className="admin-table-phone">{student.phone}</td>
+                          <td>
                             {student.device_id ? (
-                              <span className="font-mono text-[10px] px-2.5 py-1 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 max-w-[150px] inline-block truncate" title={student.device_id}>
+                              <span className="badge-device" title={student.device_id}>
                                 {student.device_id}
                               </span>
                             ) : (
-                              <span className="text-[10px] px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold">미등록 (Unbound)</span>
+                              <span className="badge-unbound">미등록 (Unbound)</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-xs text-slate-500 font-semibold">
+                          <td style={{ fontSize: '0.75rem', opacity: 0.5 }}>
                             {student.registered_at ? new Date(student.registered_at).toLocaleString() : '-'}
                           </td>
-                          <td className="px-6 py-4 text-center">
-                            <div className="inline-flex space-x-1.5">
+                          <td>
+                            <div className="admin-actions-flex">
                               <button 
                                 onClick={() => openModal('edit', student)}
-                                className="px-3 py-1.5 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 hover:text-white transition duration-200"
+                                className="btn-action"
                               >
                                 수정
                               </button>
                               {student.device_id ? (
                                 <button 
                                   onClick={() => handleResetDevice(student.student_id, student.name)}
-                                  className="px-3 py-1.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 text-xs font-bold text-orange-400 transition duration-200"
+                                  className="btn-action btn-action-warning"
                                 >
                                   기기 해제
                                 </button>
                               ) : (
                                 <button 
                                   disabled
-                                  className="px-3 py-1.5 rounded-xl bg-slate-900/50 border border-white/5 text-xs font-bold text-slate-700 cursor-not-allowed"
+                                  className="btn-action btn-action-disabled"
                                 >
                                   해제불가
                                 </button>
                               )}
                               <button 
                                 onClick={() => handleDeleteStudent(student.id, student.student_id, student.name)}
-                                className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-xs font-bold text-red-400 transition duration-200"
+                                className="btn-action btn-action-danger"
                               >
                                 삭제
                               </button>
@@ -438,67 +437,65 @@ export default function AdminPage() {
         )}
       </main>
 
-      {/* 학생 편집 다이얼로그 모달 (유리모피즘 오버레이) */}
+      {/* 모달 팝업 */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all duration-300">
-          <div className="max-w-md w-full bg-slate-900/80 border border-white/10 backdrop-blur-2xl p-6 rounded-3xl shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-cyan-400 to-indigo-500"></div>
-            
-            <h3 className="text-lg font-black text-white mb-4 tracking-tight">
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-card">
+            <h3 className="admin-modal-title">
               {modalMode === 'add' ? '✨ 신규 학생 사전등록' : '✏️ 학생 정보 수정'}
             </h3>
             
-            <form onSubmit={handleModalSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-slate-500 font-extrabold tracking-wider uppercase">학번</label>
+            <form onSubmit={handleModalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="admin-input-group">
+                <label className="admin-input-label">학번</label>
                 <input 
                   type="text" 
                   placeholder="예: 10101"
                   value={formStudentId}
                   onChange={(e) => setFormStudentId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-white/5 bg-slate-950 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/10 text-sm font-semibold transition duration-300"
+                  className="admin-input-text"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-slate-500 font-extrabold tracking-wider uppercase">이름</label>
+              <div className="admin-input-group">
+                <label className="admin-input-label">이름</label>
                 <input 
                   type="text" 
                   placeholder="예: 홍길동"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-white/5 bg-slate-950 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/10 text-sm font-semibold transition duration-300"
+                  className="admin-input-text"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-slate-500 font-extrabold tracking-wider uppercase">전화번호</label>
+              <div className="admin-input-group">
+                <label className="admin-input-label">전화번호</label>
                 <input 
                   type="text" 
                   placeholder="예: 01012345678 (하이픈 없이)"
                   value={formPhone}
                   onChange={(e) => setFormPhone(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-white/5 bg-slate-950 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/10 text-sm font-semibold transition duration-300"
+                  className="admin-input-text"
                 />
               </div>
 
               {error && (
-                <div className="p-3 bg-red-500/5 border border-red-500/20 text-red-400 rounded-xl text-xs font-bold text-center">
+                <div className="admin-banner admin-banner-error" style={{ margin: 0 }}>
                   ⚠️ {error}
                 </div>
               )}
 
-              <div className="flex justify-end space-x-2 pt-4 border-t border-white/5">
+              <div className="admin-modal-buttons">
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 hover:text-white transition duration-200"
+                  className="btn-cancel"
                 >
                   취소
                 </button>
                 <button 
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-slate-950 font-black text-xs shadow-lg shadow-cyan-500/10 transition duration-200"
+                  className="btn-save"
                 >
                   저장하기
                 </button>
@@ -509,7 +506,7 @@ export default function AdminPage() {
       )}
 
       {/* 푸터 */}
-      <footer className="border-t border-white/5 bg-slate-950/50 py-4 px-6 text-center text-[10px] text-slate-600 font-extrabold tracking-wider uppercase">
+      <footer className="admin-footer">
         © 2026 별가람고등학교 스마트 출결 관리 시스템.
       </footer>
     </div>
