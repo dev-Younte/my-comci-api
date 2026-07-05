@@ -132,8 +132,47 @@ export default function Home() {
       display: 'flex',
       flexDirection: 'column',
       gap: '30px',
-      flex: 1
+      flex: 1,
+      position: 'relative'
     }}>
+      {/* 관리자 로그인 버튼 */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        right: '20px',
+        zIndex: 100
+      }}>
+        <a href="/admin" style={{
+          padding: '10px 18px',
+          borderRadius: '12px',
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          color: '#00c6ff',
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          textDecoration: 'none',
+          backdropFilter: 'blur(10px)',
+          transition: 'all 0.3s ease',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(0, 198, 255, 0.1)';
+          e.currentTarget.style.borderColor = '#00c6ff';
+          e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 198, 255, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+          e.currentTarget.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.1)';
+        }}
+        >
+          🔑 관리자 로그인
+        </a>
+      </div>
+
       {/* Header Section */}
       <header style={{
         textAlign: 'center',

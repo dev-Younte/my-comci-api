@@ -31,6 +31,40 @@ export default function AdminPage() {
   const [formName, setFormName] = useState('');
   const [formPhone, setFormPhone] = useState('');
 
+  // 출결 탭 및 기록 상태
+  const [activeTab, setActiveTab] = useState<'students' | 'attendance'>('students');
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+  const [attendanceSearchTerm, setAttendanceSearchTerm] = useState('');
+
+  const fetchAttendanceRecords = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const token = btoa(`${username}:${password}`);
+      const res = await fetch('/api/admin/attendance', {
+        headers: {
+          'Authorization': `Basic ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAttendanceRecords(data.records || []);
+      } else {
+        setError(data.message || '출결 데이터를 불러오는데 실패했습니다.');
+      }
+    } catch (e) {
+      setError('서버 연결 오류');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'attendance') {
+      fetchAttendanceRecords();
+    }
+  }, [isAuthenticated, activeTab]);
+
   // LocalStorage에서 Basic Auth 토큰 자동 복구 및 로그인 시도
   useEffect(() => {
     const savedToken = localStorage.getItem('admin_basic_token');
@@ -219,6 +253,7 @@ export default function AdminPage() {
     setPassword('');
     setIsAuthenticated(false);
     setStudents([]);
+    setAttendanceRecords([]);
     setError('');
     setSuccessMsg('');
   };
@@ -228,6 +263,14 @@ export default function AdminPage() {
     student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.student_id.includes(searchTerm) ||
     student.phone.includes(searchTerm)
+  );
+
+  const filteredAttendance = attendanceRecords.filter(rec => 
+    rec.student_name.toLowerCase().includes(attendanceSearchTerm.toLowerCase()) ||
+    rec.student_id.includes(attendanceSearchTerm) ||
+    rec.type.toLowerCase().includes(attendanceSearchTerm.toLowerCase()) ||
+    rec.result.toLowerCase().includes(attendanceSearchTerm.toLowerCase()) ||
+    rec.date.includes(attendanceSearchTerm)
   );
 
   // 로딩 인디케이터
@@ -342,176 +385,343 @@ export default function AdminPage() {
           /* 어드민 대시보드 화면 */
           <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
-            {/* 제어 바 */}
-            <div className="admin-control-bar" style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'stretch' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                <div className="admin-search-wrapper" style={{ flex: 1, minWidth: '280px' }}>
-                  <span style={{ opacity: 0.5 }}>🔍</span>
-                  <input 
-                    type="text"
-                    placeholder="학생 이름, 학번, 전화번호로 간편 검색..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="admin-search-input"
-                  />
-                  {searchTerm && (
-                    <button onClick={() => setSearchTerm('')} className="admin-search-clear">
-                      지우기
+            {/* 탭 네비게이션 */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              paddingBottom: '12px',
+              marginBottom: '4px'
+            }}>
+              <button
+                onClick={() => setActiveTab('students')}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  background: activeTab === 'students' ? 'rgba(0, 198, 255, 0.12)' : 'transparent',
+                  border: '1px solid ' + (activeTab === 'students' ? 'rgba(0, 198, 255, 0.3)' : 'transparent'),
+                  color: activeTab === 'students' ? '#00c6ff' : 'rgba(255, 255, 255, 0.6)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                👥 학생 명단 관리
+              </button>
+              <button
+                onClick={() => setActiveTab('attendance')}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  background: activeTab === 'attendance' ? 'rgba(0, 198, 255, 0.12)' : 'transparent',
+                  border: '1px solid ' + (activeTab === 'attendance' ? 'rgba(0, 198, 255, 0.3)' : 'transparent'),
+                  color: activeTab === 'attendance' ? '#00c6ff' : 'rgba(255, 255, 255, 0.6)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                📅 학생 등하교 데이터 조회
+              </button>
+            </div>
+
+            {activeTab === 'students' ? (
+              <>
+                {/* 제어 바 */}
+                <div className="admin-control-bar" style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'stretch' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <div className="admin-search-wrapper" style={{ flex: 1, minWidth: '280px' }}>
+                      <span style={{ opacity: 0.5 }}>🔍</span>
+                      <input 
+                        type="text"
+                        placeholder="학생 이름, 학번, 전화번호로 간편 검색..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="admin-search-input"
+                      />
+                      {searchTerm && (
+                        <button onClick={() => setSearchTerm('')} className="admin-search-clear">
+                          지우기
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.05)', padding: '8px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>SMS 전송 비활성화</span>
+                      <label className="sms-toggle-switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={localStorage.getItem('sms_disabled') === 'true'} 
+                          onChange={(e) => {
+                            const nextVal = e.target.checked ? 'true' : 'false';
+                            localStorage.setItem('sms_disabled', nextVal);
+                            setSuccessMsg(e.target.checked ? 'SMS 발송 기능이 비활성화되었습니다.' : 'SMS 발송 기능이 활성화되었습니다.');
+                          }} 
+                          style={{ opacity: 0, width: 0, height: 0 }}
+                        />
+                        <span style={{
+                          position: 'absolute',
+                          cursor: 'pointer',
+                          top: 0, left: 0, right: 0, bottom: 0,
+                          backgroundColor: localStorage.getItem('sms_disabled') === 'true' ? '#ff3b30' : 'rgba(255,255,255,0.2)',
+                          transition: '.3s',
+                          borderRadius: '24px'
+                        }}>
+                          <span style={{
+                            position: 'absolute',
+                            content: '""',
+                            height: '18px', width: '18px',
+                            left: localStorage.getItem('sms_disabled') === 'true' ? '22px' : '3px',
+                            bottom: '3px',
+                            backgroundColor: 'white',
+                            transition: '.3s',
+                            borderRadius: '50%'
+                          }} />
+                        </span>
+                      </label>
+                    </div>
+
+                    <button onClick={() => openModal('add')} className="btn-add-student" style={{ height: '42px' }}>
+                      + 신규 학생 사전등록
                     </button>
-                  )}
-                </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.05)', padding: '8px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>SMS 전송 비활성화</span>
-                  <label className="sms-toggle-switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={localStorage.getItem('sms_disabled') === 'true'} 
-                      onChange={(e) => {
-                        const nextVal = e.target.checked ? 'true' : 'false';
-                        localStorage.setItem('sms_disabled', nextVal);
-                        // Send configuration status to the server so it can be verified.
-                        // We will set this in localStorage, and also pass it to our API call if needed.
-                        // To make it persistent on server, we can write it to our local settings or trigger a state refresh.
-                        setSuccessMsg(e.target.checked ? 'SMS 발송 기능이 비활성화되었습니다.' : 'SMS 발송 기능이 활성화되었습니다.');
-                      }} 
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0, left: 0, right: 0, bottom: 0,
-                      backgroundColor: localStorage.getItem('sms_disabled') === 'true' ? '#ff3b30' : 'rgba(255,255,255,0.2)',
-                      transition: '.3s',
-                      borderRadius: '24px'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '""',
-                        height: '18px', width: '18px',
-                        left: localStorage.getItem('sms_disabled') === 'true' ? '22px' : '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        transition: '.3s',
-                        borderRadius: '50%'
-                      }} />
-                    </span>
-                  </label>
-                </div>
-
-                <button onClick={() => openModal('add')} className="btn-add-student" style={{ height: '42px' }}>
-                  + 신규 학생 사전등록
-                </button>
-
-                <div className="admin-stat-card" style={{ height: '42px', display: 'flex', alignItems: 'center' }}>
-                  <div>
-                    <div className="admin-stat-label">사전등록 현황</div>
-                    <div className="admin-stat-val">
-                      {filteredStudents.length} / {students.length} 명
+                    <div className="admin-stat-card" style={{ height: '42px', display: 'flex', alignItems: 'center' }}>
+                      <div>
+                        <div className="admin-stat-label">사전등록 현황</div>
+                        <div className="admin-stat-val">
+                          {filteredStudents.length} / {students.length} 명
+                        </div>
+                      </div>
+                      <div className="admin-stat-icon">✓</div>
                     </div>
                   </div>
-                  <div className="admin-stat-icon">✓</div>
                 </div>
-              </div>
-            </div>
 
-            {/* 피드백 알림 배너 */}
-            {successMsg && (
-              <div className="admin-banner admin-banner-success">
-                ✓ {successMsg}
-              </div>
-            )}
-            {error && (
-              <div className="admin-banner admin-banner-error">
-                ⚠️ {error}
-              </div>
-            )}
+                {/* 피드백 알림 배너 */}
+                {successMsg && (
+                  <div className="admin-banner admin-banner-success">
+                    ✓ {successMsg}
+                  </div>
+                )}
+                {error && (
+                  <div className="admin-banner admin-banner-error">
+                    ⚠️ {error}
+                  </div>
+                )}
 
-            {/* 학생 명단 테이블 (컬럼 넓이 절대 고정 적용) */}
-            <div className="admin-table-panel">
-              <div className="admin-table-scroll">
-                <table className="admin-table">
-                  <colgroup>
-                    <col style={{ width: '12%' }} />
-                    <col style={{ width: '15%' }} />
-                    <col style={{ width: '18%' }} />
-                    <col style={{ width: '22%' }} />
-                    <col style={{ width: '18%' }} />
-                    <col style={{ width: '15%' }} />
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th>학번</th>
-                      <th>이름</th>
-                      <th>전화번호</th>
-                      <th>바인딩 기기 식별값</th>
-                      <th>인증 완료 시각</th>
-                      <th style={{ textAlign: 'center' }}>출결 조치</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStudents.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.5 }}>
-                          현재 조건에 부합하는 학생 정보가 없습니다.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredStudents.map((student) => (
-                        <tr key={student.id}>
-                          <td className="admin-table-student-id">{student.student_id}</td>
-                          <td className="admin-table-name">{student.name}</td>
-                          <td className="admin-table-phone">{student.phone}</td>
-                          <td>
-                            {student.device_id ? (
-                              <span className="badge-device" title={student.device_id}>
-                                {student.device_id}
-                              </span>
-                            ) : (
-                              <span className="badge-unbound">미등록 (Unbound)</span>
-                            )}
-                          </td>
-                          <td style={{ fontSize: '0.75rem', opacity: 0.5 }}>
-                            {student.registered_at ? new Date(student.registered_at).toLocaleString() : '-'}
-                          </td>
-                          <td>
-                            <div className="admin-actions-flex">
-                              <button 
-                                onClick={() => openModal('edit', student)}
-                                className="btn-action"
-                              >
-                                수정
-                              </button>
-                              {student.device_id ? (
-                                <button 
-                                  onClick={() => handleResetDevice(student.student_id, student.name)}
-                                  className="btn-action btn-action-warning"
-                                >
-                                  기기 해제
-                                </button>
-                              ) : (
-                                <button 
-                                  disabled
-                                  className="btn-action btn-action-disabled"
-                                >
-                                  해제불가
-                                </button>
-                              )}
-                              <button 
-                                onClick={() => handleDeleteStudent(student.id, student.student_id, student.name)}
-                                className="btn-action btn-action-danger"
-                              >
-                                삭제
-                              </button>
-                            </div>
-                          </td>
+                {/* 학생 명단 테이블 */}
+                <div className="admin-table-panel">
+                  <div className="admin-table-scroll">
+                    <table className="admin-table">
+                      <colgroup>
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '18%' }} />
+                        <col style={{ width: '22%' }} />
+                        <col style={{ width: '18%' }} />
+                        <col style={{ width: '15%' }} />
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          <th>학번</th>
+                          <th>이름</th>
+                          <th>전화번호</th>
+                          <th>바인딩 기기 식별값</th>
+                          <th>인증 완료 시각</th>
+                          <th style={{ textAlign: 'center' }}>출결 조치</th>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                      </thead>
+                      <tbody>
+                        {filteredStudents.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.5 }}>
+                              현재 조건에 부합하는 학생 정보가 없습니다.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredStudents.map((student) => (
+                            <tr key={student.id}>
+                              <td className="admin-table-student-id">{student.student_id}</td>
+                              <td className="admin-table-name">{student.name}</td>
+                              <td className="admin-table-phone">{student.phone}</td>
+                              <td>
+                                {student.device_id ? (
+                                  <span className="badge-device" title={student.device_id}>
+                                    {student.device_id}
+                                  </span>
+                                ) : (
+                                  <span className="badge-unbound">미등록 (Unbound)</span>
+                                )}
+                              </td>
+                              <td style={{ fontSize: '0.75rem', opacity: 0.5 }}>
+                                {student.registered_at ? new Date(student.registered_at).toLocaleString() : '-'}
+                              </td>
+                              <td>
+                                <div className="admin-actions-flex">
+                                  <button 
+                                    onClick={() => openModal('edit', student)}
+                                    className="btn-action"
+                                  >
+                                    수정
+                                  </button>
+                                  {student.device_id ? (
+                                    <button 
+                                      onClick={() => handleResetDevice(student.student_id, student.name)}
+                                      className="btn-action btn-action-warning"
+                                    >
+                                      기기 해제
+                                    </button>
+                                  ) : (
+                                    <button 
+                                      disabled
+                                      className="btn-action btn-action-disabled"
+                                    >
+                                      해제불가
+                                    </button>
+                                  )}
+                                  <button 
+                                    onClick={() => handleDeleteStudent(student.id, student.student_id, student.name)}
+                                    className="btn-action btn-action-danger"
+                                  >
+                                    삭제
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* 출결 기록 제어 바 */}
+                <div className="admin-control-bar" style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'stretch' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <div className="admin-search-wrapper" style={{ flex: 1, minWidth: '280px' }}>
+                      <span style={{ opacity: 0.5 }}>🔍</span>
+                      <input 
+                        type="text"
+                        placeholder="학번, 이름, 구분(등하교), 결과로 검색..."
+                        value={attendanceSearchTerm}
+                        onChange={(e) => setAttendanceSearchTerm(e.target.value)}
+                        className="admin-search-input"
+                      />
+                      {attendanceSearchTerm && (
+                        <button onClick={() => setAttendanceSearchTerm('')} className="admin-search-clear">
+                          지우기
+                        </button>
+                      )}
+                    </div>
+
+                    <button onClick={fetchAttendanceRecords} className="btn-add-student" style={{ height: '42px', padding: '0 16px', background: 'rgba(0, 198, 255, 0.1)', border: '1px solid #00c6ff', color: '#00c6ff' }}>
+                      🔄 기록 새로고침
+                    </button>
+
+                    <div className="admin-stat-card" style={{ height: '42px', display: 'flex', alignItems: 'center' }}>
+                      <div>
+                        <div className="admin-stat-label">조회된 출결 건수</div>
+                        <div className="admin-stat-val">
+                          {filteredAttendance.length} / {attendanceRecords.length} 건
+                        </div>
+                      </div>
+                      <div className="admin-stat-icon">✓</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 피드백 알림 배너 */}
+                {successMsg && (
+                  <div className="admin-banner admin-banner-success">
+                    ✓ {successMsg}
+                  </div>
+                )}
+                {error && (
+                  <div className="admin-banner admin-banner-error">
+                    ⚠️ {error}
+                  </div>
+                )}
+
+                {/* 출결 데이터 조회 테이블 */}
+                <div className="admin-table-panel">
+                  <div className="admin-table-scroll">
+                    <table className="admin-table">
+                      <colgroup>
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '8%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '10%' }} />
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          <th>날짜</th>
+                          <th>학번</th>
+                          <th>이름</th>
+                          <th>구분</th>
+                          <th>시간</th>
+                          <th>Wi-Fi 정보</th>
+                          <th>비콘 정보</th>
+                          <th>GPS</th>
+                          <th>결과</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredAttendance.length === 0 ? (
+                          <tr>
+                            <td colSpan={9} style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.5 }}>
+                              출결 정보 조회 결과가 없습니다.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredAttendance.map((rec) => (
+                            <tr key={rec.id}>
+                              <td style={{ fontWeight: 500 }}>{rec.date}</td>
+                              <td className="admin-table-student-id">{rec.student_id}</td>
+                              <td className="admin-table-name">{rec.student_name}</td>
+                              <td>
+                                <span style={{
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  backgroundColor: rec.type.includes('하교') ? 'rgba(255, 59, 48, 0.12)' : 'rgba(52, 199, 89, 0.12)',
+                                  color: rec.type.includes('하교') ? '#ff3b30' : '#34c759',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600
+                                }}>
+                                  {rec.type}
+                                </span>
+                              </td>
+                              <td style={{ fontWeight: 600, color: '#00c6ff' }}>{rec.time}</td>
+                              <td style={{ fontSize: '0.75rem', opacity: 0.85 }} title={`BSSID: ${rec.wifi_bssid}`}>
+                                {rec.wifi_ssid ? `${rec.wifi_ssid} (${rec.wifi_rssi} dBm)` : '-'}
+                              </td>
+                              <td style={{ fontSize: '0.75rem', opacity: 0.85 }} title={`UUID: ${rec.beacon_uuid}`}>
+                                {rec.beacon_major ? `M:${rec.beacon_major} m:${rec.beacon_minor} (${rec.beacon_rssi})` : '-'}
+                              </td>
+                              <td style={{ fontSize: '0.75rem', opacity: 0.7 }}>{rec.gps_status}</td>
+                              <td>
+                                <span style={{
+                                  color: rec.result.includes('성공') ? '#34c759' : '#ff3b30',
+                                  fontWeight: 600
+                                }}>
+                                  {rec.result}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
 
           </div>
         )}
