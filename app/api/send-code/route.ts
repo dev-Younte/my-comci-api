@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createHash } from 'crypto';
+import { createHash, createHmac } from 'crypto';
 import { supabase } from '@/utils/supabase';
 
 interface StudentRow {
@@ -107,13 +107,66 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. 개발/디버그 빌드 환경 콘솔 로그
+    // 6. SOLAPI를 통한 실제 SMS 인증 문자 발송
+    const solapiApiKey = process.env.SOLAPI_API_KEY || '';
+    const solapiApiSecret = process.env.SOLAPI_API_SECRET || '';
+    const solapiSenderNumber = process.env.SOLAPI_SENDER_NUMBER || '';
+
+    let solapiStatusMessage = '';
+
+    if (solapiApiKey && solapiApiSecret && solapiSenderNumber) {
+      try {
+        const date = new Date().toISOString();
+        // 32글자 무작위 Salt값 생성
+        const salt = createHash('sha256').update(Math.random().toString()).digest('hex').substring(0, 32);
+        const signature = createHmac('sha256', solapiApiSecret)
+          .update(date + salt)
+          .digest('hex');
+
+        const authHeader = `HMAC-SHA256 apiKey=${solapiApiKey}, date=${date}, salt=${salt}, signature=${signature}`;
+        const smsText = `[별가람고등학교] 인증번호는 [${code}] 입니다. 3분 내에 입력해 주세요.`;
+
+        const solapiRes = await fetch('https://api.solapi.com/messages/v4/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: {
+              to: phone,
+              from: solapiSenderNumber,
+              text: smsText
+            }
+          })
+        });
+
+        const solapiData = await solapiRes.json();
+        if (!solapiRes.ok) {
+          console.error('SOLAPI API Error:', solapiData);
+          solapiStatusMessage = `(SMS 문자 발송 오류: ${solapiData.message || '솔라피 서버 거부'})`;
+        } else {
+          console.log('SOLAPI SMS Sent successfully:', solapiData);
+        }
+      } catch (solapiErr: any) {
+        console.error('SOLAPI Exception during SMS dispatch:', solapiErr);
+        solapiStatusMessage = `(SMS 전송 중 예외 발생: ${solapiErr.message || '네트워크 오류'})`;
+      }
+    } else {
+      console.log('[SMS WARNING] Solapi environment variables not set. Skipping actual SMS sending.');
+      solapiStatusMessage = ' (개발 환경: 모의 발송 모드)';
+    }
+
+    // 7. 개발/디버그 빌드 환경 콘솔 로그
     if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SMS_DEBUG_LOG === 'true') {
       console.log(`[SMS DEBUG LOG] Student: ${name} (${studentId}), Phone: ${phone}, Code: ${code}`);
     }
 
     return new NextResponse(
-      JSON.stringify({ success: true, message: '인증번호가 발송되었습니다.' }),
+      JSON.stringify({ 
+        success: true, 
+        message: `인증번호가 발송되었습니다.${solapiStatusMessage}` 
+      }),
       {
         status: 200,
         headers: {
