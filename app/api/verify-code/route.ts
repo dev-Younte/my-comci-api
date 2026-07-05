@@ -7,25 +7,21 @@ interface StudentRow {
   student_id: string;
   name: string;
   phone: string;
+  device_id: string | null;
+  is_locked: boolean;
   created_at: string;
 }
 
 interface SmsCodeRow {
   id: string;
+  name: string;
   student_id: string;
   phone: string;
+  device_id: string;
   code_hash: string;
   expires_at: string;
   used: boolean;
   created_at: string;
-}
-
-interface RegisteredDeviceRow {
-  id: string;
-  student_id: string;
-  device_id: string;
-  created_at: string;
-  last_seen_at: string;
 }
 
 export async function POST(request: Request) {
@@ -44,37 +40,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. 학생 정보 조회
-    const { data: student, error: studentError } = await supabase
-      .from('students')
-      .select('*')
-      .eq('name', name)
-      .eq('student_id', studentId)
-      .eq('phone', phone)
-      .maybeSingle();
-
-    if (studentError) {
-      console.error('Error fetching student:', studentError);
-      return NextResponse.json(
-        { success: false, message: '데이터베이스 조회 중 오류가 발생했습니다.' },
-        { status: 500 }
-      );
-    }
-
-    const studentData = student as StudentRow | null;
-
-    if (!studentData) {
-      return NextResponse.json(
-        { success: false, message: '일치하는 학생 정보가 존재하지 않습니다.' },
-        { status: 200 }
-      );
-    }
-
-    // 2. 가장 최근 발송된 인증번호 조회
+    // 1. 가장 최근 발송된 인증번호 조회
     const { data: smsCode, error: smsError } = await supabase
       .from('sms_codes')
       .select('*')
-      .eq('student_id', studentData.id)
+      .eq('phone', phone)
+      .eq('student_id', studentId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -96,7 +67,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. 인증번호 상태 및 만료 기간 검증
+    // 2. 인증번호 상태 및 만료 기간 검증
     if (smsCodeData.used) {
       return NextResponse.json(
         { success: false, message: '이미 사용된 인증번호입니다. 다시 발송해주세요.' },
@@ -111,7 +82,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. 해시값 비교 검증 (student_id + phone + code + SMS_CODE_SECRET)
+    // 3. 해시값 비교 검증 (student_id + phone + code + SMS_CODE_SECRET)
     const secret = process.env.SMS_CODE_SECRET || '';
     const hashInput = studentId + phone + code + secret;
     const computedHash = createHash('sha256').update(hashInput).digest('hex');
@@ -123,7 +94,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. 인증번호 사용 완료 처리
+    // 4. 인증번호 사용 완료 처리
     const { error: updateCodeError } = await supabase
       .from('sms_codes')
       .update({ used: true })
@@ -137,27 +108,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. 단일 기기 등록 제한 검증 (student_id UNIQUE 제약조건 활용)
-    const { data: registeredDevice, error: deviceFetchError } = await supabase
-      .from('registered_devices')
+    // 5. students 테이블 조회 및 기등록 여부 검사
+    const { data: student, error: studentError } = await supabase
+      .from('students')
       .select('*')
-      .eq('student_id', studentData.id)
+      .eq('student_id', studentId)
       .maybeSingle();
 
-    if (deviceFetchError) {
-      console.error('Error fetching registered device:', deviceFetchError);
+    if (studentError) {
+      console.error('Error fetching student:', studentError);
       return NextResponse.json(
-        { success: false, message: '등록 기기 조회 중 오류가 발생했습니다.' },
+        { success: false, message: '데이터베이스 학생 조회 중 오류가 발생했습니다.' },
         { status: 500 }
       );
     }
 
-    const registeredDeviceData = registeredDevice as RegisteredDeviceRow | null;
+    const studentData = student as StudentRow | null;
 
-    if (registeredDeviceData) {
-      // 기존 기기가 있는 경우
-      if (registeredDeviceData.device_id !== deviceId) {
-        // 이미 다른 기기에서 등록이 완료된 학생인 경우
+    if (studentData) {
+      // 기존에 이미 학적이 등록되어 있는 경우
+      if (studentData.is_locked && studentData.device_id && studentData.device_id !== deviceId) {
         return new NextResponse(
           JSON.stringify({
             success: false,
@@ -174,31 +144,44 @@ export async function POST(request: Request) {
             }
           }
         );
-      } else {
-        // 동일 기기에서 재가입/로그인하는 경우, 최종 사용 정보만 업데이트
-        const { error: updateDeviceError } = await supabase
-          .from('registered_devices')
-          .update({ last_seen_at: new Date().toISOString() })
-          .eq('id', registeredDeviceData.id);
+      }
 
-        if (updateDeviceError) {
-          console.error('Error updating device last seen:', updateDeviceError);
-        }
+      // 기기가 일치하거나, 기존 기기 해제 상태(device_id가 NULL인 상태)인 경우 바인딩 정보 업데이트
+      const { error: updateStudentError } = await supabase
+        .from('students')
+        .update({
+          device_id: deviceId,
+          registered_at: new Date().toISOString(),
+          is_locked: true,
+          name: name,
+          phone: phone
+        })
+        .eq('id', studentData.id);
+
+      if (updateStudentError) {
+        console.error('Error updating student device binding:', updateStudentError);
+        return NextResponse.json(
+          { success: false, message: '기기 바인딩 업데이트에 실패했습니다.' },
+          { status: 500 }
+        );
       }
     } else {
-      // 신규 기기 등록인 경우
-      const { error: insertDeviceError } = await supabase
-        .from('registered_devices')
+      // 최초 가입 등록인 경우 (Self-Registration)
+      const { error: insertStudentError } = await supabase
+        .from('students')
         .insert({
-          student_id: studentData.id,
+          student_id: studentId,
+          name: name,
+          phone: phone,
           device_id: deviceId,
-          last_seen_at: new Date().toISOString()
+          registered_at: new Date().toISOString(),
+          is_locked: true
         });
 
-      if (insertDeviceError) {
-        console.error('Error registering device:', insertDeviceError);
+      if (insertStudentError) {
+        console.error('Error registering new student:', insertStudentError);
         return NextResponse.json(
-          { success: false, message: '기기 정보 등록에 실패했습니다.' },
+          { success: false, message: '학생 등록에 실패했습니다.' },
           { status: 500 }
         );
       }

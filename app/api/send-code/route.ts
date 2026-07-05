@@ -7,6 +7,8 @@ interface StudentRow {
   student_id: string;
   name: string;
   phone: string;
+  device_id: string | null;
+  is_locked: boolean;
   created_at: string;
 }
 
@@ -16,21 +18,20 @@ export async function POST(request: Request) {
     const name = (body?.name || '').trim();
     const studentId = (body?.studentId || '').trim();
     const phone = (body?.phone || '').trim();
+    const deviceId = (body?.deviceId || '').trim();
 
-    if (!name || !studentId || !phone) {
+    if (!name || !studentId || !phone || !deviceId) {
       return NextResponse.json(
-        { success: false, message: '이름, 학번, 전화번호를 모두 입력해주세요.' },
+        { success: false, message: '이름, 학번, 전화번호, 기기 정보를 모두 입력해주세요.' },
         { status: 400 }
       );
     }
 
-    // 1. Supabase students 테이블에서 학생 정보 조회
+    // 1. Supabase students 테이블에서 학생 기등록 정보 조회
     const { data: student, error: studentError } = await supabase
       .from('students')
       .select('*')
-      .eq('name', name)
       .eq('student_id', studentId)
-      .eq('phone', phone)
       .maybeSingle();
 
     if (studentError) {
@@ -43,29 +44,46 @@ export async function POST(request: Request) {
 
     const studentData = student as StudentRow | null;
 
-    if (!studentData) {
-      return NextResponse.json(
-        { success: false, message: '일치하는 학생 정보가 존재하지 않습니다.' },
-        { status: 200 }
-      );
+    // 2. 이미 등록 완료되었고(is_locked = true) 등록된 기기 정보와 현재 기기가 다를 경우 차단
+    if (studentData && studentData.is_locked) {
+      if (studentData.device_id && studentData.device_id !== deviceId) {
+        return new NextResponse(
+          JSON.stringify({
+            success: false,
+            code: 'DEVICE_ALREADY_REGISTERED',
+            message: '이미 다른 기기가 등록되어 있습니다. 본인 기기가 아니라면 관리자에게 문의해 주세요.'
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'POST, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+            }
+          }
+        );
+      }
     }
 
-    // 2. 6자리 인증번호 생성
+    // 3. 6자리 인증번호 생성
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 3. 인증번호 해시 생성 (student_id + phone + code + SMS_CODE_SECRET)
+    // 4. 인증번호 해시 생성 (student_id + phone + code + SMS_CODE_SECRET)
     const secret = process.env.SMS_CODE_SECRET || '';
     const hashInput = studentId + phone + code + secret;
     const codeHash = createHash('sha256').update(hashInput).digest('hex');
 
     const expiresAt = new Date(Date.now() + 3 * 60 * 1000).toISOString(); // 3분 후 만료
 
-    // 4. sms_codes 테이블에 저장 (student_id는 students.id 참조)
+    // 5. sms_codes 테이블에 기록 (학생 행은 생성하지 않음)
     const { error: insertError } = await supabase
       .from('sms_codes')
       .insert({
-        student_id: studentData.id,
+        name: name,
+        student_id: studentId,
         phone: phone,
+        device_id: deviceId,
         code_hash: codeHash,
         expires_at: expiresAt,
         used: false
@@ -74,12 +92,12 @@ export async function POST(request: Request) {
     if (insertError) {
       console.error('Error inserting SMS code:', insertError);
       return NextResponse.json(
-        { success: false, message: '인증번호 저장에 실패했습니다.' },
+        { success: false, message: '인증번호 생성 및 저장에 실패했습니다.' },
         { status: 500 }
       );
     }
 
-    // 5. 개발/디버그 빌드 환경 콘솔 로그
+    // 6. 개발/디버그 빌드 환경 콘솔 로그
     if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SMS_DEBUG_LOG === 'true') {
       console.log(`[SMS DEBUG LOG] Student: ${name} (${studentId}), Phone: ${phone}, Code: ${code}`);
     }
