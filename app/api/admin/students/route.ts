@@ -1,24 +1,12 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';
+import { validateAdminAuth, getCorsHeaders } from '@/utils/auth';
 
 export async function GET(request: Request) {
   try {
-    const authHeader = request.headers.get('Authorization');
-    const secret = process.env.ADMIN_SECRET_KEY || '';
-    
-    if (!secret || !authHeader || authHeader !== `Bearer ${secret}`) {
-      return new NextResponse(
-        JSON.stringify({ success: false, message: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-          }
-        }
-      );
+    const authResult = validateAdminAuth(request);
+    if (!authResult.isValid) {
+      return authResult.errorResponse!;
     }
 
     const { data: students, error } = await supabase
@@ -30,7 +18,7 @@ export async function GET(request: Request) {
       console.error('Error fetching students:', error);
       return new NextResponse(
         JSON.stringify({ success: false, message: '데이터베이스 조회 실패' }),
-        { status: 500 }
+        { status: 500, headers: getCorsHeaders() }
       );
     }
 
@@ -40,14 +28,15 @@ export async function GET(request: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+          ...getCorsHeaders()
         }
       }
     );
   } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return new NextResponse(
+      JSON.stringify({ success: false, message: error.message }),
+      { status: 500, headers: getCorsHeaders() }
+    );
   }
 }
 
@@ -55,9 +44,7 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      ...getCorsHeaders(),
       'Access-Control-Max-Age': '86400'
     }
   });

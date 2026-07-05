@@ -466,6 +466,7 @@ body {
   border-collapse: collapse;
   text-align: left;
   font-size: 0.85rem;
+  table-layout: fixed;
 }
 
 .admin-table th {

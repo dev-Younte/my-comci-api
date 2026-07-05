@@ -14,6 +14,7 @@ interface Student {
 }
 
 export default function AdminPage() {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
@@ -30,33 +31,43 @@ export default function AdminPage() {
   const [formName, setFormName] = useState('');
   const [formPhone, setFormPhone] = useState('');
 
-  // LocalStorage에서 관리자 키 자동 복구
+  // LocalStorage에서 Basic Auth 토큰 자동 복구 및 로그인 시도
   useEffect(() => {
-    const savedKey = localStorage.getItem('admin_secret_key');
-    if (savedKey) {
-      setPassword(savedKey);
-      verifyAndLoad(savedKey);
+    const savedToken = localStorage.getItem('admin_basic_token');
+    if (savedToken) {
+      try {
+        const decoded = atob(savedToken);
+        const [savedUser, savedPass] = decoded.split(':');
+        if (savedUser && savedPass) {
+          setUsername(savedUser);
+          setPassword(savedPass);
+          verifyAndLoad(savedUser, savedPass);
+        }
+      } catch (e) {
+        localStorage.removeItem('admin_basic_token');
+      }
     }
   }, []);
 
-  const verifyAndLoad = async (keyToVerify: string) => {
+  const verifyAndLoad = async (userVal: string, passVal: string) => {
     setLoading(true);
     setError('');
     try {
+      const token = btoa(`${userVal}:${passVal}`);
       const res = await fetch('/api/admin/students', {
         headers: {
-          'Authorization': `Bearer ${keyToVerify}`
+          'Authorization': `Basic ${token}`
         }
       });
       const data = await res.json();
       if (res.ok && data.success) {
         setIsAuthenticated(true);
         setStudents(data.students || []);
-        localStorage.setItem('admin_secret_key', keyToVerify);
+        localStorage.setItem('admin_basic_token', token);
       } else {
-        setError(data.message || '인증번호가 올바르지 않습니다.');
+        setError(data.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
         setIsAuthenticated(false);
-        localStorage.removeItem('admin_secret_key');
+        localStorage.removeItem('admin_basic_token');
       }
     } catch (e: any) {
       setError('서버 연결 중 오류가 발생했습니다.');
@@ -67,11 +78,11 @@ export default function AdminPage() {
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password.trim()) {
-      setError('비밀번호를 입력해주세요.');
+    if (!username.trim() || !password.trim()) {
+      setError('아이디와 비밀번호를 모두 입력해주세요.');
       return;
     }
-    verifyAndLoad(password.trim());
+    verifyAndLoad(username.trim(), password.trim());
   };
 
   // 학생 등록/수정 모달 열기
@@ -111,11 +122,12 @@ export default function AdminPage() {
       : { id: selectedStudentId, studentId: formStudentId, name: formName, phone: formPhone };
 
     try {
+      const token = btoa(`${username}:${password}`);
       const res = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${password}`
+          'Authorization': `Basic ${token}`
         },
         body: JSON.stringify(payload)
       });
@@ -123,7 +135,7 @@ export default function AdminPage() {
       if (res.ok && data.success) {
         setSuccessMsg(data.message || '요청이 성공적으로 처리되었습니다.');
         setIsModalOpen(false);
-        verifyAndLoad(password);
+        verifyAndLoad(username, password);
       } else {
         setError(data.message || '저장에 실패했습니다.');
       }
@@ -145,18 +157,19 @@ export default function AdminPage() {
     setSuccessMsg('');
 
     try {
+      const token = btoa(`${username}:${password}`);
       const res = await fetch('/api/admin/delete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${password}`
+          'Authorization': `Basic ${token}`
         },
         body: JSON.stringify({ id })
       });
       const data = await res.json();
       if (res.ok && data.success) {
         setSuccessMsg(`${studentName} 학생 정보가 삭제되었습니다.`);
-        verifyAndLoad(password);
+        verifyAndLoad(username, password);
       } else {
         setError(data.message || '학생 삭제에 실패했습니다.');
       }
@@ -177,18 +190,19 @@ export default function AdminPage() {
     setError('');
     setSuccessMsg('');
     try {
+      const token = btoa(`${username}:${password}`);
       const res = await fetch('/api/admin/reset', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${password}`
+          'Authorization': `Basic ${token}`
         },
         body: JSON.stringify({ studentId })
       });
       const data = await res.json();
       if (res.ok && data.success) {
         setSuccessMsg(`${studentName} 학생의 기기 바인딩이 해제되었습니다.`);
-        verifyAndLoad(password);
+        verifyAndLoad(username, password);
       } else {
         setError(data.message || '기기 초기화에 실패했습니다.');
       }
@@ -200,7 +214,8 @@ export default function AdminPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_secret_key');
+    localStorage.removeItem('admin_basic_token');
+    setUsername('');
     setPassword('');
     setIsAuthenticated(false);
     setStudents([]);
@@ -255,8 +270,12 @@ export default function AdminPage() {
 
       {/* 헤더 */}
       <header className="admin-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div className="admin-logo-box">별</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <img 
+            src="/school_logo.png" 
+            alt="Logo" 
+            style={{ width: '40px', height: '40px', borderRadius: '10px', objectFit: 'contain' }} 
+          />
           <div>
             <div className="admin-header-title">별가람고 스마트 출결 관리</div>
             <div className="admin-header-subtitle">ADMIN SYSTEM</div>
@@ -277,21 +296,34 @@ export default function AdminPage() {
           /* 로그인 인터페이스 */
           <div className="admin-login-card animate-fade-in">
             <div className="admin-card-header">
-              <h2 className="admin-card-title">관리자 보안 인증</h2>
+              <h2 className="admin-card-title">관리자 인증 로그인</h2>
               <p className="admin-card-desc">
-                출결 연동 시스템 조작을 위해 어드민 보안 인증 암호를 입력해주세요.
+                출결 연동 시스템 조작을 위해 아이디와 비밀번호를 입력해주세요.
               </p>
             </div>
             
-            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div className="admin-input-group">
+            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="admin-input-group" style={{ marginBottom: '10px' }}>
+                <label className="admin-input-label">아이디</label>
+                <input 
+                  type="text"
+                  placeholder="관리자 ID 입력"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="admin-input-text"
+                  style={{ textAlign: 'center' }}
+                />
+              </div>
+
+              <div className="admin-input-group" style={{ marginBottom: '20px' }}>
+                <label className="admin-input-label">비밀번호</label>
                 <input 
                   type="password"
-                  placeholder="보안 비밀키 입력"
+                  placeholder="관리자 Password 입력"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="admin-input-text"
-                  style={{ textAlign: 'center', letterSpacing: '0.1em' }}
+                  style={{ textAlign: 'center' }}
                 />
               </div>
 
@@ -301,7 +333,7 @@ export default function AdminPage() {
                 </div>
               )}
 
-              <button type="submit" disabled={loading} className="btn-primary">
+              <button type="submit" disabled={loading} className="btn-primary" style={{ marginTop: '5px' }}>
                 시스템 인증하기
               </button>
             </form>
@@ -355,10 +387,18 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* 학생 명단 테이블 */}
+            {/* 학생 명단 테이블 (컬럼 넓이 절대 고정 적용) */}
             <div className="admin-table-panel">
               <div className="admin-table-scroll">
                 <table className="admin-table">
+                  <colgroup>
+                    <col style={{ width: '12%' }} />
+                    <col style={{ width: '15%' }} />
+                    <col style={{ width: '18%' }} />
+                    <col style={{ width: '22%' }} />
+                    <col style={{ width: '18%' }} />
+                    <col style={{ width: '15%' }} />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th>학번</th>
@@ -505,9 +545,18 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* 푸터 */}
-      <footer className="admin-footer">
-        © 2026 별가람고등학교 스마트 출결 관리 시스템.
+      {/* 푸터 (기업 및 시스템 엔지니어링 크레딧 고도화) */}
+      <footer className="admin-footer" style={{ padding: '40px 20px', display: 'flex', flexDirection: 'column', gap: '8px', opacity: 0.6, fontSize: '0.7rem' }}>
+        <div>© 2026 BYEOLGARAM HIGH SCHOOL. SMART ATTENDANCE MANAGEMENT SYSTEM. ALL RIGHTS RESERVED.</div>
+        <div style={{ color: '#00c6ff', fontWeight: 600, letterSpacing: '0.05em' }}>
+          Powered by Vercel Edge Serverless Functions & Google Sheets API
+        </div>
+        <div style={{ opacity: 0.8 }}>
+          별가람고등학교 컴시간 시간표 및 특별교실 BSSID 통합 위치 매핑 대시보드
+        </div>
+        <div style={{ marginTop: '6px', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+          System Engineered by <strong style={{ color: '#ffffff' }}>10509 김태윤 제작</strong>
+        </div>
       </footer>
     </div>
   );

@@ -1,24 +1,12 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';
+import { validateAdminAuth, getCorsHeaders } from '@/utils/auth';
 
 export async function POST(request: Request) {
   try {
-    const authHeader = request.headers.get('Authorization');
-    const secret = process.env.ADMIN_SECRET_KEY || '';
-
-    if (!secret || !authHeader || authHeader !== `Bearer ${secret}`) {
-      return new NextResponse(
-        JSON.stringify({ success: false, message: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-          }
-        }
-      );
+    const authResult = validateAdminAuth(request);
+    if (!authResult.isValid) {
+      return authResult.errorResponse!;
     }
 
     const body = (await request.json()) as Record<string, string | undefined>;
@@ -27,7 +15,7 @@ export async function POST(request: Request) {
     if (!studentId) {
       return new NextResponse(
         JSON.stringify({ success: false, message: '학번(studentId)을 입력해 주세요.' }),
-        { status: 400 }
+        { status: 400, headers: getCorsHeaders() }
       );
     }
 
@@ -45,7 +33,7 @@ export async function POST(request: Request) {
       console.error('Error resetting student device binding:', error);
       return new NextResponse(
         JSON.stringify({ success: false, message: '기기 초기화 데이터베이스 업데이트 실패' }),
-        { status: 500 }
+        { status: 500, headers: getCorsHeaders() }
       );
     }
 
@@ -55,14 +43,15 @@ export async function POST(request: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+          ...getCorsHeaders()
         }
       }
     );
   } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return new NextResponse(
+      JSON.stringify({ success: false, message: error.message }),
+      { status: 500, headers: getCorsHeaders() }
+    );
   }
 }
 
@@ -70,9 +59,7 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      ...getCorsHeaders(),
       'Access-Control-Max-Age': '86400'
     }
   });

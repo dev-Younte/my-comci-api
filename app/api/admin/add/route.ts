@@ -1,24 +1,12 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';
+import { validateAdminAuth, getCorsHeaders } from '@/utils/auth';
 
 export async function POST(request: Request) {
   try {
-    const authHeader = request.headers.get('Authorization');
-    const secret = process.env.ADMIN_SECRET_KEY || '';
-
-    if (!secret || !authHeader || authHeader !== `Bearer ${secret}`) {
-      return new NextResponse(
-        JSON.stringify({ success: false, message: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-          }
-        }
-      );
+    const authResult = validateAdminAuth(request);
+    if (!authResult.isValid) {
+      return authResult.errorResponse!;
     }
 
     const body = (await request.json()) as Record<string, string | undefined>;
@@ -29,7 +17,7 @@ export async function POST(request: Request) {
     if (!studentId || !name || !phone) {
       return new NextResponse(
         JSON.stringify({ success: false, message: '학번, 이름, 전화번호를 모두 입력해 주세요.' }),
-        { status: 400 }
+        { status: 400, headers: getCorsHeaders() }
       );
     }
 
@@ -49,12 +37,12 @@ export async function POST(request: Request) {
         const field = error.message.includes('student_id') ? '학번' : '전화번호';
         return new NextResponse(
           JSON.stringify({ success: false, message: `이미 등록된 ${field}입니다.` }),
-          { status: 200 }
+          { status: 200, headers: getCorsHeaders() }
         );
       }
       return new NextResponse(
         JSON.stringify({ success: false, message: '학생 등록 데이터베이스 저장 실패' }),
-        { status: 500 }
+        { status: 500, headers: getCorsHeaders() }
       );
     }
 
@@ -64,14 +52,15 @@ export async function POST(request: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+          ...getCorsHeaders()
         }
       }
     );
   } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return new NextResponse(
+      JSON.stringify({ success: false, message: error.message }),
+      { status: 500, headers: getCorsHeaders() }
+    );
   }
 }
 
@@ -79,9 +68,7 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      ...getCorsHeaders(),
       'Access-Control-Max-Age': '86400'
     }
   });
