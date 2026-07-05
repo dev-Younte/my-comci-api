@@ -217,65 +217,73 @@ export default function AdminPage() {
 
   // 로딩 오버레이
   const renderLoading = () => (
-    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center rounded-xl z-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center rounded-2xl z-50">
+      <div className="flex flex-col items-center space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400"></div>
+        <p className="text-sm font-semibold text-cyan-400 tracking-wider">데이터를 처리 중입니다...</p>
+      </div>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans select-none overflow-x-hidden relative">
-      {/* 백그라운드 구체 조명 */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-900/10 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-900/10 blur-[120px] pointer-events-none"></div>
+      {/* 초현대적 네온 백그라운드 글로우 */}
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[50%] rounded-full bg-cyan-500/10 blur-[130px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[50%] rounded-full bg-indigo-500/10 blur-[130px] pointer-events-none"></div>
+      <div className="absolute top-[40%] left-[30%] w-[40%] h-[40%] rounded-full bg-violet-600/5 blur-[150px] pointer-events-none"></div>
 
-      {/* 헤더 */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
+      {/* 헤더 (글래스모피즘 스티키) */}
+      <header className="border-b border-white/5 bg-slate-950/60 backdrop-blur-xl sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 bg-gradient-to-tr from-cyan-500 to-violet-500 rounded-lg flex items-center justify-center font-bold text-lg text-slate-950">
+          <div className="w-10 h-10 bg-gradient-to-tr from-cyan-400 to-indigo-500 rounded-xl flex items-center justify-center font-black text-xl text-slate-950 shadow-lg shadow-cyan-500/20">
             별
           </div>
           <div>
-            <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-slate-300">
-              별가람고 스마트 출결 관리 시스템
+            <h1 className="text-base font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-50 to-slate-200">
+              별가람고 스마트 출결 관리
             </h1>
-            <p className="text-xs text-cyan-400 font-semibold tracking-wider">ADMIN CONSOLE v1.1</p>
+            <p className="text-[10px] text-cyan-400 font-extrabold tracking-widest uppercase">ADMIN SYSTEM</p>
           </div>
         </div>
         {isAuthenticated && (
           <button 
             onClick={handleLogout}
-            className="px-4 py-1.5 rounded-lg border border-slate-700 bg-slate-800/40 hover:bg-red-950/30 hover:border-red-800 text-xs font-semibold text-slate-300 hover:text-red-400 transition duration-200"
+            className="px-4 py-2 rounded-xl border border-white/5 bg-white/5 hover:bg-red-500/10 hover:border-red-500/30 text-xs font-bold text-slate-300 hover:text-red-400 transition duration-300"
           >
             로그아웃
           </button>
         )}
       </header>
 
-      {/* 본문 콘텐츠 */}
+      {/* 본문 레이아웃 */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-8 flex flex-col justify-center relative">
         {loading && renderLoading()}
 
         {!isAuthenticated ? (
-          /* 로그인 인터페이스 */
-          <div className="max-w-md w-full mx-auto bg-slate-900/60 border border-slate-800 backdrop-blur-xl p-8 rounded-2xl shadow-2xl relative">
-            <div className="text-center mb-6">
-              <h2 className="text-xl font-bold text-slate-100 mb-2">관리자 보안 인증</h2>
-              <p className="text-sm text-slate-400">학적 등록 및 기기 해제를 위해 어드민 패스워드를 입력해주세요.</p>
+          /* 로그인 인터페이스 (글래스모피즘 카드) */
+          <div className="max-w-md w-full mx-auto bg-slate-900/40 border border-white/5 backdrop-blur-2xl p-8 rounded-3xl shadow-2xl shadow-black/40 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-cyan-400 to-indigo-500"></div>
+            
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-black text-white mb-2 tracking-tight">관리자 로그인</h2>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                출결 연동 시스템 조작을 위해 어드민 보안 인증 암호를 입력해주세요.
+              </p>
             </div>
             
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              <div>
+            <form onSubmit={handleLoginSubmit} className="space-y-5">
+              <div className="space-y-1">
                 <input 
                   type="password"
-                  placeholder="관리자 패스워드를 입력하세요"
+                  placeholder="보안 비밀키 입력"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-slate-800 bg-slate-950/80 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
+                  className="w-full px-4 py-3 rounded-2xl border border-white/5 bg-slate-950/80 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 text-sm font-semibold tracking-wider transition duration-300 text-center"
                 />
               </div>
 
               {error && (
-                <div className="p-3 bg-red-950/30 border border-red-800 text-red-400 rounded-lg text-xs font-medium">
+                <div className="p-3.5 bg-red-500/5 border border-red-500/20 text-red-400 rounded-2xl text-xs font-semibold tracking-wide text-center">
                   ⚠️ {error}
                 </div>
               )}
@@ -283,131 +291,140 @@ export default function AdminPage() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm tracking-wide shadow-lg shadow-cyan-900/20 active:scale-[0.98] transition duration-150"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-slate-950 font-black text-sm tracking-wide shadow-xl shadow-cyan-500/10 active:scale-[0.98] transition duration-300"
               >
-                인증 확인
+                시스템 인증하기
               </button>
             </form>
           </div>
         ) : (
-          /* 어드민 대시보드 화면 */
+          /* 어드민 대시보드 메인 화면 */
           <div className="flex-1 flex flex-col space-y-6">
             
-            {/* 상단 검색바, 등록 버튼 및 상태 카드 */}
+            {/* 대시보드 상단 제어바 */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="md:col-span-2 bg-slate-900/40 border border-slate-900 backdrop-blur-md p-4 rounded-xl flex items-center">
+              <div className="md:col-span-2 bg-slate-900/30 border border-white/5 backdrop-blur-xl p-2 rounded-2xl flex items-center shadow-lg">
+                <span className="pl-3 text-slate-500">🔍</span>
                 <input 
                   type="text"
-                  placeholder="이름, 학번, 전화번호 검색..."
+                  placeholder="학생 이름, 학번, 전화번호로 간편 검색..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-transparent text-slate-100 placeholder-slate-500 focus:outline-none text-sm"
+                  className="w-full bg-transparent text-slate-100 placeholder-slate-600 focus:outline-none text-sm px-2 font-semibold"
                 />
                 {searchTerm && (
-                  <button onClick={() => setSearchTerm('')} className="text-slate-500 hover:text-slate-300 text-xs px-2 font-bold">
+                  <button 
+                    onClick={() => setSearchTerm('')} 
+                    className="text-xs font-extrabold text-slate-500 hover:text-cyan-400 px-3 transition duration-200"
+                  >
                     지우기
                   </button>
                 )}
               </div>
 
-              {/* 신규 학생 등록 버튼 */}
+              {/* 신규 학생 등록 버튼 (네온 테두리) */}
               <button
                 onClick={() => openModal('add')}
-                className="px-4 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-sm shadow-lg shadow-cyan-950/20 transition duration-150 active:scale-[0.98]"
+                className="py-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-slate-950 font-black text-sm shadow-xl shadow-cyan-500/10 transition duration-300 active:scale-[0.98]"
               >
-                + 신규 학생 등록
+                + 신규 학생 사전등록
               </button>
 
-              <div className="bg-slate-900/40 border border-slate-900 backdrop-blur-md p-4 rounded-xl flex items-center justify-between">
+              {/* 실시간 카운팅 보드 */}
+              <div className="bg-slate-900/30 border border-white/5 backdrop-blur-xl px-5 py-4 rounded-2xl flex items-center justify-between shadow-lg">
                 <div>
-                  <p className="text-xs text-slate-400 font-medium">조회 학생 수</p>
-                  <p className="text-xl font-extrabold text-cyan-400">{filteredStudents.length} / {students.length} 명</p>
+                  <p className="text-[10px] text-slate-500 font-extrabold tracking-wider uppercase">REGISTRATION RATE</p>
+                  <p className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">
+                    {filteredStudents.length} / {students.length} 명
+                  </p>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-cyan-950/60 border border-cyan-800/40 flex items-center justify-center text-cyan-400 font-bold text-xs">
-                  ★
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 font-black text-sm">
+                  ✓
                 </div>
               </div>
             </div>
 
-            {/* 알림 메시지 배너 */}
+            {/* 성공/실패 배너 피드백 */}
             {successMsg && (
-              <div className="p-3 bg-emerald-950/20 border border-emerald-800 text-emerald-400 rounded-lg text-xs font-semibold animate-pulse">
+              <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 text-emerald-400 rounded-2xl text-xs font-bold tracking-wide animate-fadeIn">
                 ✓ {successMsg}
               </div>
             )}
             {error && (
-              <div className="p-3 bg-red-950/20 border border-red-800 text-red-400 rounded-lg text-xs font-semibold">
+              <div className="p-4 bg-red-500/5 border border-red-500/20 text-red-400 rounded-2xl text-xs font-bold tracking-wide animate-fadeIn">
                 ⚠️ {error}
               </div>
             )}
 
-            {/* 학생 리스트 테이블 */}
-            <div className="bg-slate-900/20 border border-slate-800/80 backdrop-blur-lg rounded-xl overflow-hidden shadow-2xl flex-1 flex flex-col">
+            {/* 메인 명단 글래스모피즘 보드 */}
+            <div className="bg-slate-900/10 border border-white/5 backdrop-blur-2xl rounded-3xl overflow-hidden shadow-2xl flex-1 flex flex-col">
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left text-sm">
                   <thead>
-                    <tr className="border-b border-slate-800/80 bg-slate-900/40 text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                      <th className="px-6 py-4">학번</th>
-                      <th className="px-6 py-4">이름</th>
-                      <th className="px-6 py-4">전화번호</th>
-                      <th className="px-6 py-4">등록 기기 ID</th>
-                      <th className="px-6 py-4">인증 시간</th>
-                      <th className="px-6 py-4 text-center">관리 액션</th>
+                    <tr className="border-b border-white/5 bg-slate-900/30 text-slate-400 text-[11px] font-black tracking-wider uppercase">
+                      <th className="px-6 py-4.5">학번</th>
+                      <th className="px-6 py-4.5">이름</th>
+                      <th className="px-6 py-4.5">전화번호</th>
+                      <th className="px-6 py-4.5">바인딩 기기 식별값</th>
+                      <th className="px-6 py-4.5">인증 완료 시각</th>
+                      <th className="px-6 py-4.5 text-center">출결 조치</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/40 bg-slate-950/20">
+                  <tbody className="divide-y divide-white/5 bg-slate-950/5">
                     {filteredStudents.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-medium">
-                          등록된 학생 정보가 존재하지 않습니다.
+                        <td colSpan={6} className="px-6 py-16 text-center text-slate-600 font-semibold text-sm">
+                          현재 조건에 부합하는 학생 정보가 없습니다.
                         </td>
                       </tr>
                     ) : (
                       filteredStudents.map((student) => (
-                        <tr key={student.id} className="hover:bg-slate-900/20 transition-colors">
-                          <td className="px-6 py-4 font-mono font-bold text-cyan-400">{student.student_id}</td>
-                          <td className="px-6 py-4 font-semibold text-slate-200">{student.name}</td>
-                          <td className="px-6 py-4 text-slate-300 font-mono">{student.phone}</td>
+                        <tr key={student.id} className="hover:bg-white/[0.02] transition-colors duration-300">
+                          <td className="px-6 py-4 font-mono font-bold text-cyan-400 text-sm">{student.student_id}</td>
+                          <td className="px-6 py-4 font-bold text-slate-200 text-sm">{student.name}</td>
+                          <td className="px-6 py-4 text-slate-400 font-mono text-xs">{student.phone}</td>
                           <td className="px-6 py-4">
                             {student.device_id ? (
-                              <span className="font-mono text-xs px-2 py-1 rounded bg-indigo-950/30 border border-indigo-900/50 text-indigo-300 max-w-[140px] inline-block truncate" title={student.device_id}>
+                              <span className="font-mono text-[10px] px-2.5 py-1 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 max-w-[150px] inline-block truncate" title={student.device_id}>
                                 {student.device_id}
                               </span>
                             ) : (
-                              <span className="text-xs text-amber-500/80 font-medium">미등록 (Unbound)</span>
+                              <span className="text-[10px] px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold">미등록 (Unbound)</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-xs text-slate-400">
+                          <td className="px-6 py-4 text-xs text-slate-500 font-semibold">
                             {student.registered_at ? new Date(student.registered_at).toLocaleString() : '-'}
                           </td>
-                          <td className="px-6 py-4 flex items-center justify-center space-x-2">
-                            <button 
-                              onClick={() => openModal('edit', student)}
-                              className="px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800/40 hover:bg-slate-800 hover:text-white text-xs font-semibold text-slate-300 transition duration-150"
-                            >
-                              수정
-                            </button>
-                            {student.device_id ? (
+                          <td className="px-6 py-4 text-center">
+                            <div className="inline-flex space-x-1.5">
                               <button 
-                                onClick={() => handleResetDevice(student.student_id, student.name)}
-                                className="px-2.5 py-1.5 rounded-lg bg-orange-950/40 hover:bg-orange-900/60 border border-orange-850 text-xs font-semibold text-orange-300 transition duration-150"
+                                onClick={() => openModal('edit', student)}
+                                className="px-3 py-1.5 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 hover:text-white transition duration-200"
                               >
-                                기기 해제
+                                수정
                               </button>
-                            ) : (
+                              {student.device_id ? (
+                                <button 
+                                  onClick={() => handleResetDevice(student.student_id, student.name)}
+                                  className="px-3 py-1.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 text-xs font-bold text-orange-400 transition duration-200"
+                                >
+                                  기기 해제
+                                </button>
+                              ) : (
+                                <button 
+                                  disabled
+                                  className="px-3 py-1.5 rounded-xl bg-slate-900/50 border border-white/5 text-xs font-bold text-slate-700 cursor-not-allowed"
+                                >
+                                  해제불가
+                                </button>
+                              )}
                               <button 
-                                disabled
-                                className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-850 text-xs font-semibold text-slate-600 cursor-not-allowed"
+                                onClick={() => handleDeleteStudent(student.id, student.student_id, student.name)}
+                                className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-xs font-bold text-red-400 transition duration-200"
                               >
-                                미인증
+                                삭제
                               </button>
-                            )}
-                            <button 
-                              onClick={() => handleDeleteStudent(student.id, student.student_id, student.name)}
-                              className="px-2.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 border border-red-900 text-xs font-semibold text-red-300 transition duration-150"
-                            >
-                              삭제
-                            </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -421,65 +438,67 @@ export default function AdminPage() {
         )}
       </main>
 
-      {/* 등록/수정 다이얼로그 모달 */}
+      {/* 학생 편집 다이얼로그 모달 (유리모피즘 오버레이) */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-          <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-slate-100">
-              {modalMode === 'add' ? '신규 학생 등록' : '학생 정보 수정'}
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all duration-300">
+          <div className="max-w-md w-full bg-slate-900/80 border border-white/10 backdrop-blur-2xl p-6 rounded-3xl shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-cyan-400 to-indigo-500"></div>
+            
+            <h3 className="text-lg font-black text-white mb-4 tracking-tight">
+              {modalMode === 'add' ? '✨ 신규 학생 사전등록' : '✏️ 학생 정보 수정'}
             </h3>
             
             <form onSubmit={handleModalSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs text-slate-400 font-semibold">학번</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-slate-500 font-extrabold tracking-wider uppercase">학번</label>
                 <input 
                   type="text" 
                   placeholder="예: 10101"
                   value={formStudentId}
                   onChange={(e) => setFormStudentId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-800 bg-slate-950 text-slate-100 focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2.5 rounded-xl border border-white/5 bg-slate-950 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/10 text-sm font-semibold transition duration-300"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs text-slate-400 font-semibold">이름</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-slate-500 font-extrabold tracking-wider uppercase">이름</label>
                 <input 
                   type="text" 
                   placeholder="예: 홍길동"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-800 bg-slate-950 text-slate-100 focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2.5 rounded-xl border border-white/5 bg-slate-950 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/10 text-sm font-semibold transition duration-300"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs text-slate-400 font-semibold">전화번호</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-slate-500 font-extrabold tracking-wider uppercase">전화번호</label>
                 <input 
                   type="text" 
                   placeholder="예: 01012345678 (하이픈 없이)"
                   value={formPhone}
                   onChange={(e) => setFormPhone(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-800 bg-slate-950 text-slate-100 focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2.5 rounded-xl border border-white/5 bg-slate-950 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/10 text-sm font-semibold transition duration-300"
                 />
               </div>
 
               {error && (
-                <div className="p-2.5 bg-red-950/30 border border-red-800 text-red-400 rounded-lg text-xs">
+                <div className="p-3 bg-red-500/5 border border-red-500/20 text-red-400 rounded-xl text-xs font-bold text-center">
                   ⚠️ {error}
                 </div>
               )}
 
-              <div className="flex justify-end space-x-2 pt-2">
+              <div className="flex justify-end space-x-2 pt-4 border-t border-white/5">
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 text-sm font-semibold text-slate-300"
+                  className="px-4 py-2 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 hover:text-white transition duration-200"
                 >
                   취소
                 </button>
                 <button 
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-sm"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-slate-950 font-black text-xs shadow-lg shadow-cyan-500/10 transition duration-200"
                 >
                   저장하기
                 </button>
@@ -490,8 +509,8 @@ export default function AdminPage() {
       )}
 
       {/* 푸터 */}
-      <footer className="border-t border-slate-900 bg-slate-950/50 py-4 px-6 text-center text-xs text-slate-500 font-medium">
-        © 2026 별가람고등학교 스마트 출결 관리 시스템. All Rights Reserved.
+      <footer className="border-t border-white/5 bg-slate-950/50 py-4 px-6 text-center text-[10px] text-slate-600 font-extrabold tracking-wider uppercase">
+        © 2026 별가람고등학교 스마트 출결 관리 시스템.
       </footer>
     </div>
   );
