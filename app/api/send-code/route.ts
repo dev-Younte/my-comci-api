@@ -112,9 +112,13 @@ export async function POST(request: Request) {
     const solapiApiSecret = process.env.SOLAPI_API_SECRET || '';
     const solapiSenderNumber = process.env.SOLAPI_SENDER_NUMBER || '';
 
+    const disableSmsHeader = request.headers.get('X-Disable-SMS') === 'true';
     let solapiStatusMessage = '';
 
-    if (solapiApiKey && solapiApiSecret && solapiSenderNumber) {
+    if (disableSmsHeader) {
+      console.log('[SMS INFO] SMS transmission skipped due to X-Disable-SMS header.');
+      solapiStatusMessage = ' (서버 설정: SMS 전송 비활성화 모드)';
+    } else if (solapiApiKey && solapiApiSecret && solapiSenderNumber) {
       try {
         const date = new Date().toISOString();
         // 32글자 무작위 Salt값 생성
@@ -173,7 +177,7 @@ export async function POST(request: Request) {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Disable-SMS'
         }
       }
     );

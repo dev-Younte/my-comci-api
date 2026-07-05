@@ -222,6 +222,7 @@ export default function Home() {
               </span>
             </div>
 
+
             {/* School Code */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>

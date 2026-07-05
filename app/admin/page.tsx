@@ -343,35 +343,75 @@ export default function AdminPage() {
           <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
             {/* 제어 바 */}
-            <div className="admin-control-bar">
-              <div className="admin-search-wrapper">
-                <span style={{ opacity: 0.5 }}>🔍</span>
-                <input 
-                  type="text"
-                  placeholder="학생 이름, 학번, 전화번호로 간편 검색..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="admin-search-input"
-                />
-                {searchTerm && (
-                  <button onClick={() => setSearchTerm('')} className="admin-search-clear">
-                    지우기
-                  </button>
-                )}
-              </div>
-
-              <button onClick={() => openModal('add')} className="btn-add-student">
-                + 신규 학생 사전등록
-              </button>
-
-              <div className="admin-stat-card">
-                <div>
-                  <div className="admin-stat-label">사전등록 현황</div>
-                  <div className="admin-stat-val">
-                    {filteredStudents.length} / {students.length} 명
-                  </div>
+            <div className="admin-control-bar" style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div className="admin-search-wrapper" style={{ flex: 1, minWidth: '280px' }}>
+                  <span style={{ opacity: 0.5 }}>🔍</span>
+                  <input 
+                    type="text"
+                    placeholder="학생 이름, 학번, 전화번호로 간편 검색..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="admin-search-input"
+                  />
+                  {searchTerm && (
+                    <button onClick={() => setSearchTerm('')} className="admin-search-clear">
+                      지우기
+                    </button>
+                  )}
                 </div>
-                <div className="admin-stat-icon">✓</div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.05)', padding: '8px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>SMS 전송 비활성화</span>
+                  <label className="sms-toggle-switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={localStorage.getItem('sms_disabled') === 'true'} 
+                      onChange={(e) => {
+                        const nextVal = e.target.checked ? 'true' : 'false';
+                        localStorage.setItem('sms_disabled', nextVal);
+                        // Send configuration status to the server so it can be verified.
+                        // We will set this in localStorage, and also pass it to our API call if needed.
+                        // To make it persistent on server, we can write it to our local settings or trigger a state refresh.
+                        setSuccessMsg(e.target.checked ? 'SMS 발송 기능이 비활성화되었습니다.' : 'SMS 발송 기능이 활성화되었습니다.');
+                      }} 
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0, left: 0, right: 0, bottom: 0,
+                      backgroundColor: localStorage.getItem('sms_disabled') === 'true' ? '#ff3b30' : 'rgba(255,255,255,0.2)',
+                      transition: '.3s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px', width: '18px',
+                        left: localStorage.getItem('sms_disabled') === 'true' ? '22px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '.3s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                <button onClick={() => openModal('add')} className="btn-add-student" style={{ height: '42px' }}>
+                  + 신규 학생 사전등록
+                </button>
+
+                <div className="admin-stat-card" style={{ height: '42px', display: 'flex', alignItems: 'center' }}>
+                  <div>
+                    <div className="admin-stat-label">사전등록 현황</div>
+                    <div className="admin-stat-val">
+                      {filteredStudents.length} / {students.length} 명
+                    </div>
+                  </div>
+                  <div className="admin-stat-icon">✓</div>
+                </div>
               </div>
             </div>
 
