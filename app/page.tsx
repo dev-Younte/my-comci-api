@@ -56,7 +56,6 @@ export default function Home() {
   const [schoolCode, setSchoolCode] = useState('27121');
   const [grade, setGrade] = useState('1');
   const [classNum, setClassNum] = useState('1');
-  const [scriptUrl, setScriptUrl] = useState('');
   const [date, setDate] = useState('');
   const [forceRefresh, setForceRefresh] = useState(false);
   const [timetableLoading, setTimetableLoading] = useState(false);
@@ -104,12 +103,10 @@ export default function Home() {
     const cachedSchoolCode = localStorage.getItem('cfg_schoolCode');
     const cachedGrade = localStorage.getItem('cfg_grade');
     const cachedClassNum = localStorage.getItem('cfg_classNum');
-    const cachedScriptUrl = localStorage.getItem('cfg_scriptUrl');
 
     if (cachedSchoolCode) setSchoolCode(cachedSchoolCode);
     if (cachedGrade) setGrade(cachedGrade);
     if (cachedClassNum) setClassNum(cachedClassNum);
-    if (cachedScriptUrl) setScriptUrl(cachedScriptUrl);
 
     // Auto log in from localStorage token
     const savedToken = localStorage.getItem('admin_basic_token');
@@ -295,7 +292,6 @@ export default function Home() {
     localStorage.setItem('cfg_schoolCode', schoolCode);
     localStorage.setItem('cfg_grade', grade);
     localStorage.setItem('cfg_classNum', classNum);
-    localStorage.setItem('cfg_scriptUrl', scriptUrl);
 
     try {
       const params = new URLSearchParams({
@@ -305,7 +301,6 @@ export default function Home() {
         date,
       });
 
-      if (scriptUrl.trim()) params.append('scriptUrl', scriptUrl.trim());
       if (forceRefresh) params.append('forceRefresh', 'true');
 
       const res = await fetch(`/api/today-schedule?${params.toString()}`);
@@ -323,7 +318,7 @@ export default function Home() {
     }
   };
 
-  const apiPath = `/api/today-schedule?schoolCode=${schoolCode}&grade=${grade}&classNum=${classNum}${date ? `&date=${date}` : ''}${scriptUrl ? `&scriptUrl=${encodeURIComponent(scriptUrl)}` : ''}`;
+  const apiPath = `/api/today-schedule?schoolCode=${schoolCode}&grade=${grade}&classNum=${classNum}${date ? `&date=${date}` : ''}`;
   const fullApiUrl = `${origin}${apiPath}`;
 
   // ----------------------------------------------------
@@ -945,21 +940,10 @@ export default function Home() {
                 <section className="glass-panel" style={{ padding: '30px', height: 'fit-content', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                   <div>
                     <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>⚙️ 연동 및 학급 설정</h2>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>컴시간 시간표 파싱 정보와 Apps Script URL을 테스트합니다.</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>컴시간 시간표와 Supabase 수업 위치 병합 정보를 테스트합니다.</p>
                   </div>
 
                   <form onSubmit={handleFetchTimetable} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>🔗 Google Apps Script 웹앱 링크</label>
-                      <input
-                        type="url"
-                        value={scriptUrl}
-                        onChange={(e) => setScriptUrl(e.target.value)}
-                        placeholder="기본 서버 환경변수 우선 적용됨"
-                        className="admin-input-text"
-                      />
-                    </div>
-
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>🏫 학교 코드</label>
                       <input

@@ -2,7 +2,7 @@ import './globals.css';
 
 export const metadata = {
   title: 'Comci Timetable API & Playgrounds',
-  description: 'Fast, edge-powered school timetable and Apps Script location checker.',
+  description: 'Fast, edge-powered school timetable and Supabase location checker.',
 };
 
 export default function RootLayout({
@@ -16,4 +16,3 @@ export default function RootLayout({
     </html>
   );
 }
-

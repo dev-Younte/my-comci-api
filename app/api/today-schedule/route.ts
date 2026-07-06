@@ -10,7 +10,7 @@ interface CacheEntry<T> {
 // In-memory caches
 const timetableCache = new Map<string, CacheEntry<TimetableResult>>();
 
-async function fetchLocationRules(classNum: number, queryScriptUrl?: string | null, forceRefresh: boolean = false): Promise<{ locations: Record<string, string>; bssids: Record<string, string> }> {
+async function fetchLocationRules(classNum: number): Promise<{ locations: Record<string, string>; bssids: Record<string, string> }> {
   const gradeClass = `1-${String(classNum).padStart(2, '0')}`;
   
   try {
@@ -108,7 +108,6 @@ export async function GET(request: Request) {
   const grade = Number(searchParams.get('grade'));
   const classNum = Number(searchParams.get('classNum'));
   const date = searchParams.get('date') || undefined; // YYYY-MM-DD (선택)
-  const queryScriptUrl = searchParams.get('scriptUrl');
   const forceRefresh = searchParams.get('forceRefresh') === 'true';
 
   if (isNaN(grade) || isNaN(classNum)) {
@@ -119,10 +118,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    // 1. 컴시간 시간표 데이터와 구글 시트 위치 정보를 병렬로 비동기 호출
+    // 1. 컴시간 시간표 데이터와 Supabase 위치 정보를 병렬로 비동기 호출
     const [timetableResult, locationResult] = await Promise.all([
       fetchTimetableData(schoolCode, grade, classNum, date, forceRefresh),
-      fetchLocationRules(classNum, queryScriptUrl, forceRefresh)
+      fetchLocationRules(classNum)
     ]);
 
     const { locations, bssids } = locationResult;
