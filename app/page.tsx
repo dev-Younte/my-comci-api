@@ -76,13 +76,8 @@ export default function Home() {
   const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
   const [attendanceSearchTerm, setAttendanceSearchTerm] = useState('');
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
-  const [selectedAttendanceId, setSelectedAttendanceId] = useState<string | null>(null);
-  const [formAttDate, setFormAttDate] = useState('');
+  const [selectedAttRecord, setSelectedAttRecord] = useState<any | null>(null);
   const [formAttType, setFormAttType] = useState('');
-  const [formAttTime, setFormAttTime] = useState('');
-  const [formAttResult, setFormAttResult] = useState('');
-  const [formAttWifiSsid, setFormAttWifiSsid] = useState('');
-  const [formAttGpsStatus, setFormAttGpsStatus] = useState('');
 
   // 1. Initial configuration load & Session restoration
   useEffect(() => {
@@ -398,20 +393,15 @@ export default function Home() {
     setSuccessMsg(checked ? 'SMS 발송 기능이 비활성화되었습니다.' : 'SMS 발송 기능이 활성화되었습니다.');
   };
 
-  const handleOpenAttendanceEditModal = (rec: any) => {
-    setSelectedAttendanceId(rec.id);
-    setFormAttDate(rec.date);
+  const handleOpenAttendanceDetailModal = (rec: any) => {
+    setSelectedAttRecord(rec);
     setFormAttType(rec.type);
-    setFormAttTime(rec.time);
-    setFormAttResult(rec.result);
-    setFormAttWifiSsid(rec.wifi_ssid || '');
-    setFormAttGpsStatus(rec.gps_status || '');
     setIsAttendanceModalOpen(true);
   };
 
   const handleAttendanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedAttendanceId) return;
+    if (!selectedAttRecord) return;
 
     setGlobalLoading(true);
     setAuthError('');
@@ -424,20 +414,15 @@ export default function Home() {
           'Authorization': `Basic ${token}`
         },
         body: JSON.stringify({
-          id: selectedAttendanceId,
-          date: formAttDate,
-          type: formAttType,
-          time: formAttTime,
-          result: formAttResult,
-          wifi_ssid: formAttWifiSsid,
-          gps_status: formAttGpsStatus
+          id: selectedAttRecord.id,
+          type: formAttType
         })
       });
 
       const result = await res.json();
       if (res.ok && result.success) {
         setIsAttendanceModalOpen(false);
-        setSuccessMsg('출결 기록이 성공적으로 수정되었습니다.');
+        setSuccessMsg('출결 구분 정보가 성공적으로 수정되었습니다.');
         fetchAttendanceRecords();
       } else {
         setAuthError(result.message || '출결 기록 수정 실패');
@@ -685,6 +670,24 @@ export default function Home() {
     } else {
       return <span style={{ color }}>{resultStr}</span>;
     }
+  };
+
+  const getBssidClassName = (bssid: string) => {
+    if (!bssid) return '알 수 없음 (연결 정보 없음)';
+    const normalized = bssid.toLowerCase().trim();
+    const mapping: { [key: string]: string } = {
+      "1c:ec:72:11:5a:f8": "1학년 1반",
+      "1c:ec:72:11:0b:9d": "1학년 2반",
+      "1c:ec:72:11:0b:a2": "1학년 3반",
+      "1c:ec:72:11:0b:a7": "1학년 4반",
+      "1c:ec:72:11:0b:ca": "1학년 5반",
+      "1c:ec:72:11:0b:cf": "1학년 6반",
+      "1c:ec:72:11:0b:d4": "1학년 7반",
+      "1c:ec:72:11:0b:d9": "1학년 8반",
+      "1c:ec:72:11:0b:de": "1학년 9반",
+      "0a:29:d5:4b:9c:20": "1학년 10반"
+    };
+    return mapping[normalized] || `알 수 없는 위치 (BSSID: ${bssid})`;
   };
 
   return (
@@ -1176,22 +1179,19 @@ export default function Home() {
                     <table className="admin-table">
                       <thead>
                         <tr>
-                          <th style={{ width: '12%' }}>날짜</th>
-                          <th style={{ width: '10%' }}>학번</th>
-                          <th style={{ width: '12%' }}>이름</th>
-                          <th style={{ width: '10%' }}>구분</th>
-                          <th style={{ width: '10%' }}>전송시간</th>
-                          <th style={{ width: '12%' }}>WIFI (SSID)</th>
-                          <th style={{ width: '11%' }}>GPS 상태</th>
-                          <th style={{ width: '11%' }}>결과</th>
-                          <th style={{ width: '12%' }}>{dashboardTab === 'deleted_attendance' ? '삭제시간' : '서버로그'}</th>
-                          <th style={{ width: '10%' }}>관리</th>
+                          <th style={{ width: '15%' }}>날짜</th>
+                          <th style={{ width: '12%' }}>학번</th>
+                          <th style={{ width: '15%' }}>이름</th>
+                          <th style={{ width: '13%' }}>구분</th>
+                          <th style={{ width: '13%' }}>전송 시간</th>
+                          <th style={{ width: '17%' }}>결과</th>
+                          <th style={{ width: '15%' }}>관리</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredAttendance.length === 0 ? (
                           <tr>
-                            <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>출결 기록이 존재하지 않습니다.</td>
+                            <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>출결 기록이 존재하지 않습니다.</td>
                           </tr>
                         ) : (
                           filteredAttendance.map((rec) => (
@@ -1216,30 +1216,11 @@ export default function Home() {
                                 }}>{rec.type}</span>
                               </td>
                               <td style={{ fontFamily: 'var(--font-mono)' }}>{rec.time}</td>
-                              <td style={{ fontSize: '0.8rem' }} title={`BSSID: ${rec.wifi_bssid}`}>{rec.wifi_ssid}</td>
-                              <td style={{ fontSize: '0.8rem', color: rec.gps_status === '교실 위치 일치' ? '#00e676' : 'inherit' }}>{rec.gps_status}</td>
                               <td>{renderResultCell(rec.result, rec.type)}</td>
-                              <td style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                {dashboardTab === 'deleted_attendance' 
-                                  ? (rec.deleted_at ? new Date(rec.deleted_at).toLocaleString('ko-KR') : '-')
-                                  : new Date(rec.created_at).toLocaleTimeString('ko-KR')
-                                }
-                              </td>
                               <td>
-                                {dashboardTab === 'deleted_attendance' ? (
-                                  <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                                    <button onClick={() => handleAttendanceRestore(rec.id)} className="btn-edit" style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#00e676', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>복원</button>
-                                    <button onClick={() => handleAttendancePermanentDelete(rec.id)} style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#ff5252', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>영구 삭제</button>
-                                  </div>
-                                ) : (
-                                  <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                                    <button onClick={() => handleOpenAttendanceEditModal(rec)} className="btn-edit" style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#00c6ff', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>수정</button>
-                                    {rec.original_record && (
-                                      <button onClick={() => handleAttendanceRevert(rec.id)} style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#ff9100', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>원상복귀</button>
-                                    )}
-                                    <button onClick={() => handleAttendanceDelete(rec.id)} style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#ff5252', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>삭제</button>
-                                  </div>
-                                )}
+                                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                  <button onClick={() => handleOpenAttendanceDetailModal(rec)} className="btn-edit" style={{ padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(0, 198, 255, 0.15)', color: '#00c6ff', border: '1px solid rgba(0, 198, 255, 0.3)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}>상세 정보 및 관리</button>
+                                </div>
                               </td>
                             </tr>
                           ))
@@ -1306,89 +1287,115 @@ export default function Home() {
       )}
 
       {/* 출결 기록 수정 모달 */}
-      {isAttendanceModalOpen && (
+      {isAttendanceModalOpen && selectedAttRecord && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-card">
-            <h3 className="admin-modal-title">출결 기록 수정</h3>
-            <form onSubmit={handleAttendanceSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="admin-input-group">
-                <label className="admin-input-label">날짜 (yyyy-MM-dd)</label>
-                <input 
-                  type="text" 
-                  placeholder="예: 2026-07-06" 
-                  value={formAttDate}
-                  onChange={(e) => setFormAttDate(e.target.value)}
-                  className="admin-input-text"
-                  required
-                />
+          <div className="admin-modal-card" style={{ maxWidth: '580px', width: '90%' }}>
+            <h3 className="admin-modal-title">출결 상세 정보 및 관리</h3>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '150px 1fr', 
+              gap: '12px', 
+              background: 'rgba(255, 255, 255, 0.02)', 
+              padding: '20px', 
+              borderRadius: '10px', 
+              border: '1px solid rgba(255, 255, 255, 0.05)', 
+              marginBottom: '20px',
+              fontSize: '0.85rem',
+              lineHeight: '1.5'
+            }}>
+              <div style={{ fontWeight: 'bold', color: 'rgba(255, 255, 255, 0.5)' }}>날짜</div>
+              <div style={{ color: '#fff' }}>{selectedAttRecord.date}</div>
+
+              <div style={{ fontWeight: 'bold', color: 'rgba(255, 255, 255, 0.5)' }}>학번</div>
+              <div style={{ color: '#fff', fontFamily: 'var(--font-mono)' }}>{selectedAttRecord.student_id}</div>
+
+              <div style={{ fontWeight: 'bold', color: 'rgba(255, 255, 255, 0.5)' }}>이름</div>
+              <div style={{ color: '#fff', fontWeight: 600 }}>
+                {selectedAttRecord.student_name}
+                {selectedAttRecord.original_record && (
+                  <span style={{ fontSize: '0.7rem', color: '#ff9100', marginLeft: '8px', fontWeight: 'bold' }}>(수정됨)</span>
+                )}
               </div>
 
-              <div className="admin-input-group">
-                <label className="admin-input-label">구분 (등교 / 하교 / 지각)</label>
-                <select 
-                  value={formAttType}
-                  onChange={(e) => setFormAttType(e.target.value)}
-                  className="admin-input-text"
-                  style={{ background: 'var(--bg-card)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px 14px', borderRadius: '8px' }}
-                  required
-                >
-                  <option value="등교">등교</option>
-                  <option value="지각">지각</option>
-                  <option value="하교">하교</option>
-                </select>
-              </div>
+              <div style={{ fontWeight: 'bold', color: 'rgba(255, 255, 255, 0.5)' }}>전송 시간 (서버로그)</div>
+              <div style={{ color: '#fff' }}>{new Date(selectedAttRecord.created_at).toLocaleString('ko-KR')}</div>
 
-              <div className="admin-input-group">
-                <label className="admin-input-label">전송시간 (HH:mm)</label>
-                <input 
-                  type="text" 
-                  placeholder="예: 08:30" 
-                  value={formAttTime}
-                  onChange={(e) => setFormAttTime(e.target.value)}
-                  className="admin-input-text"
-                  required
-                />
-              </div>
+              <div style={{ fontWeight: 'bold', color: 'rgba(255, 255, 255, 0.5)' }}>와이파이 SSID</div>
+              <div style={{ color: '#fff' }}>{selectedAttRecord.wifi_ssid || '없음'}</div>
 
-              <div className="admin-input-group">
-                <label className="admin-input-label">결과 (성공 / 실패)</label>
-                <select 
-                  value={formAttResult}
-                  onChange={(e) => setFormAttResult(e.target.value)}
-                  className="admin-input-text"
-                  style={{ background: 'var(--bg-card)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px 14px', borderRadius: '8px' }}
-                  required
-                >
-                  <option value="성공">성공</option>
-                  <option value="실패">실패</option>
-                </select>
-              </div>
+              <div style={{ fontWeight: 'bold', color: 'rgba(255, 255, 255, 0.5)' }}>전체 BSSID</div>
+              <div style={{ color: '#fff', fontFamily: 'var(--font-mono)' }}>{selectedAttRecord.wifi_bssid || '없음'}</div>
 
-              <div className="admin-input-group">
-                <label className="admin-input-label">WIFI (SSID)</label>
-                <input 
-                  type="text" 
-                  value={formAttWifiSsid}
-                  onChange={(e) => setFormAttWifiSsid(e.target.value)}
-                  className="admin-input-text"
-                />
-              </div>
+              <div style={{ fontWeight: 'bold', color: 'rgba(255, 255, 255, 0.5)' }}>대응하는 학년/반</div>
+              <div style={{ color: '#00c6ff', fontWeight: 'bold' }}>{getBssidClassName(selectedAttRecord.wifi_bssid)}</div>
 
-              <div className="admin-input-group">
-                <label className="admin-input-label">GPS 상태</label>
-                <input 
-                  type="text" 
-                  value={formAttGpsStatus}
-                  onChange={(e) => setFormAttGpsStatus(e.target.value)}
-                  className="admin-input-text"
-                />
-              </div>
+              <div style={{ fontWeight: 'bold', color: 'rgba(255, 255, 255, 0.5)' }}>결과</div>
+              <div>{renderResultCell(selectedAttRecord.result, selectedAttRecord.type)}</div>
+            </div>
 
-              <div className="admin-modal-buttons">
-                <button type="button" onClick={() => setIsAttendanceModalOpen(false)} className="btn-cancel">취소</button>
-                <button type="submit" className="btn-save">저장</button>
+            {dashboardTab === 'deleted_attendance' ? (
+              <div>
+                <div style={{ 
+                  background: 'rgba(255, 82, 82, 0.05)', 
+                  border: '1px solid rgba(255, 82, 82, 0.2)', 
+                  padding: '12px', 
+                  borderRadius: '6px', 
+                  color: '#ff5252', 
+                  fontSize: '0.8rem',
+                  marginBottom: '20px',
+                  textAlign: 'center'
+                }}>
+                  이 기록은 휴지통에 들어 있습니다. 아래 복원 또는 영구 삭제 버튼을 사용해 관리하세요.
+                </div>
+                <div className="admin-modal-buttons" style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={() => {
+                    handleAttendanceRestore(selectedAttRecord.id);
+                    setIsAttendanceModalOpen(false);
+                  }} className="btn-save" style={{ background: '#00e676', color: '#000' }}>복원</button>
+                  <button type="button" onClick={() => {
+                    handleAttendancePermanentDelete(selectedAttRecord.id);
+                    setIsAttendanceModalOpen(false);
+                  }} className="btn-cancel" style={{ background: '#ff5252', color: '#fff' }}>영구 삭제</button>
+                  <button type="button" onClick={() => setIsAttendanceModalOpen(false)} className="btn-cancel">닫기</button>
+                </div>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleAttendanceSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="admin-input-group">
+                  <label className="admin-input-label" style={{ fontWeight: 'bold', color: '#fff' }}>출결 구분 수정</label>
+                  <select 
+                    value={formAttType}
+                    onChange={(e) => setFormAttType(e.target.value)}
+                    className="admin-input-text"
+                    style={{ background: 'var(--bg-card)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px 14px', borderRadius: '8px' }}
+                    required
+                  >
+                    <option value="등교">등교</option>
+                    <option value="인정 지각">인정 지각</option>
+                    <option value="미인정 지각">미인정 지각</option>
+                    <option value="인정 조퇴">인정 조퇴</option>
+                    <option value="미인정 조퇴">미인정 조퇴</option>
+                    <option value="하교">하교</option>
+                  </select>
+                </div>
+
+                <div className="admin-modal-buttons" style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                  <button type="button" onClick={() => setIsAttendanceModalOpen(false)} className="btn-cancel">취소</button>
+                  {selectedAttRecord.original_record && (
+                    <button type="button" onClick={() => {
+                      handleAttendanceRevert(selectedAttRecord.id);
+                      setIsAttendanceModalOpen(false);
+                    }} style={{ padding: '10px 16px', fontSize: '0.85rem', background: '#ff9100', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>원상복귀</button>
+                  )}
+                  <button type="button" onClick={() => {
+                    handleAttendanceDelete(selectedAttRecord.id);
+                    setIsAttendanceModalOpen(false);
+                  }} style={{ padding: '10px 16px', fontSize: '0.85rem', background: '#ff5252', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>삭제</button>
+                  <button type="submit" className="btn-save">저장</button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

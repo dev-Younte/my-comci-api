@@ -48,7 +48,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { id, action, date, type, time, result, wifi_ssid, gps_status } = body;
+    const { id, action, type } = body;
 
     if (!id) {
       return new NextResponse(
@@ -164,12 +164,7 @@ export async function PUT(request: Request) {
     const { error } = await supabase
       .from('attendance_records')
       .update({
-        date,
         type,
-        time,
-        result,
-        wifi_ssid: wifi_ssid || '',
-        gps_status: gps_status || '',
         original_record: originalRecordVal
       })
       .eq('id', id);
