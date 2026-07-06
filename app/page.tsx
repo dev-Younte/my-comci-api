@@ -44,7 +44,7 @@ export default function Home() {
   // 'timetable' = 컴시간 시간표 확인
   // 'students' = 학생 명단 관리
   // 'attendance' = 학생 등하교 기록 관리
-  const [dashboardTab, setDashboardTab] = useState<'timetable' | 'students' | 'attendance'>('timetable');
+  const [dashboardTab, setDashboardTab] = useState<'timetable' | 'students' | 'attendance' | 'deleted_attendance'>('timetable');
 
   // Tab 1: Timetable States
   const [schoolCode, setSchoolCode] = useState('27121');
@@ -130,7 +130,7 @@ export default function Home() {
   // Fetch data automatically when tab changes
   useEffect(() => {
     if (isAuthenticated) {
-      if (dashboardTab === 'attendance') {
+      if (dashboardTab === 'attendance' || dashboardTab === 'deleted_attendance') {
         fetchAttendanceRecords();
       } else if (dashboardTab === 'students') {
         verifyAndLoad(username, password);
@@ -450,7 +450,7 @@ export default function Home() {
   };
 
   const handleAttendanceDelete = async (id: string) => {
-    if (!confirm('정말로 이 출결 기록을 삭제하시겠습니까?')) return;
+    if (!confirm('정말로 이 출결 기록을 휴지통으로 이동하시겠습니까?')) return;
 
     setGlobalLoading(true);
     setAuthError('');
@@ -463,10 +463,94 @@ export default function Home() {
 
       const result = await res.json();
       if (res.ok && result.success) {
-        setSuccessMsg('출결 기록이 성공적으로 삭제되었습니다.');
+        setSuccessMsg('출결 기록이 휴지통으로 이동되었습니다.');
         fetchAttendanceRecords();
       } else {
         setAuthError(result.message || '출결 기록 삭제 실패');
+      }
+    } catch (e) {
+      setAuthError('서버 연결 오류');
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  const handleAttendanceRevert = async (id: string) => {
+    if (!confirm('정말로 이 출결 기록을 원상복귀하시겠습니까? 수정 전의 원래 값으로 복구됩니다.')) return;
+
+    setGlobalLoading(true);
+    setAuthError('');
+    try {
+      const token = btoa(`${username}:${password}`);
+      const res = await fetch('/api/admin/attendance', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${token}`
+        },
+        body: JSON.stringify({ id, action: 'revert' })
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setSuccessMsg('출결 기록이 수정 전 원래 데이터로 복구되었습니다.');
+        fetchAttendanceRecords();
+      } else {
+        setAuthError(result.message || '원상복귀 실패');
+      }
+    } catch (e) {
+      setAuthError('서버 연결 오류');
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  const handleAttendanceRestore = async (id: string) => {
+    setGlobalLoading(true);
+    setAuthError('');
+    try {
+      const token = btoa(`${username}:${password}`);
+      const res = await fetch('/api/admin/attendance', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${token}`
+        },
+        body: JSON.stringify({ id, action: 'restore' })
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setSuccessMsg('기록이 정상 복원되었습니다.');
+        fetchAttendanceRecords();
+      } else {
+        setAuthError(result.message || '기록 복원 실패');
+      }
+    } catch (e) {
+      setAuthError('서버 연결 오류');
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  const handleAttendancePermanentDelete = async (id: string) => {
+    if (!confirm('정말로 이 출결 기록을 영구 삭제하시겠습니까? 이 작업은 절대 되돌릴 수 없습니다.')) return;
+
+    setGlobalLoading(true);
+    setAuthError('');
+    try {
+      const token = btoa(`${username}:${password}`);
+      const res = await fetch(`/api/admin/attendance?id=${id}&permanent=true`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Basic ${token}` }
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setSuccessMsg('기록이 최종 영구 삭제되었습니다.');
+        fetchAttendanceRecords();
+      } else {
+        setAuthError(result.message || '기록 영구 삭제 실패');
       }
     } catch (e) {
       setAuthError('서버 연결 오류');
@@ -484,13 +568,20 @@ export default function Home() {
     student.phone.includes(searchTerm)
   );
 
-  const filteredAttendance = attendanceRecords.filter(rec => 
-    rec.student_name.toLowerCase().includes(attendanceSearchTerm.toLowerCase()) ||
-    rec.student_id.includes(attendanceSearchTerm) ||
-    rec.type.toLowerCase().includes(attendanceSearchTerm.toLowerCase()) ||
-    rec.result.toLowerCase().includes(attendanceSearchTerm.toLowerCase()) ||
-    rec.date.includes(attendanceSearchTerm)
-  );
+  const filteredAttendance = attendanceRecords
+    .filter(rec => {
+      if (dashboardTab === 'deleted_attendance') {
+        return !!rec.deleted_at;
+      }
+      return !rec.deleted_at;
+    })
+    .filter(rec => 
+      rec.student_name.toLowerCase().includes(attendanceSearchTerm.toLowerCase()) ||
+      rec.student_id.includes(attendanceSearchTerm) ||
+      rec.type.toLowerCase().includes(attendanceSearchTerm.toLowerCase()) ||
+      rec.result.toLowerCase().includes(attendanceSearchTerm.toLowerCase()) ||
+      rec.date.includes(attendanceSearchTerm)
+    );
 
   const renderLoadingOverlay = () => (
     <div style={{
@@ -522,6 +613,79 @@ export default function Home() {
       </div>
     </div>
   );
+
+  const getTypeBadgeStyle = (typeStr: string) => {
+    if (typeStr.includes('정시등교') || typeStr === '등교') {
+      return {
+        background: 'rgba(0, 230, 118, 0.1)',
+        color: '#00e676',
+        border: '1px solid rgba(0, 230, 118, 0.2)'
+      };
+    } else if (typeStr.includes('지각')) {
+      return {
+        background: 'rgba(255, 82, 82, 0.1)',
+        color: '#ff5252',
+        border: '1px solid rgba(255, 82, 82, 0.2)'
+      };
+    } else if (typeStr.includes('조퇴')) {
+      return {
+        background: 'rgba(255, 196, 0, 0.1)',
+        color: '#ffc400',
+        border: '1px solid rgba(255, 196, 0, 0.2)'
+      };
+    } else if (typeStr.includes('하교')) {
+      return {
+        background: 'rgba(0, 198, 255, 0.1)',
+        color: '#00c6ff',
+        border: '1px solid rgba(0, 198, 255, 0.2)'
+      };
+    } else {
+      return {
+        background: 'rgba(255, 255, 255, 0.05)',
+        color: 'rgba(255, 255, 255, 0.6)',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
+      };
+    }
+  };
+
+  const renderResultCell = (resultStr: string, typeStr: string) => {
+    const isSuccess = resultStr.includes('성공');
+    const isFailure = resultStr.includes('실패');
+    const color = isSuccess ? '#00e676' : (isFailure ? '#ff5252' : '#ffffff');
+    
+    if (isSuccess) {
+      let subtext = '';
+      if (resultStr.includes('자동')) {
+        subtext = `(자동 ${typeStr})`;
+      } else if (resultStr.includes('수동') || resultStr.includes('원클릭')) {
+        subtext = `(수동 ${typeStr})`;
+      } else {
+        subtext = `(수동 ${typeStr})`;
+      }
+      return (
+        <div style={{ color, fontWeight: 700, lineHeight: '1.2', textAlign: 'center' }}>
+          <div>성공</div>
+          <div style={{ fontSize: '0.75rem', fontWeight: 500, opacity: 0.8, marginTop: '2.5px', whiteSpace: 'pre-line' }}>{subtext}</div>
+        </div>
+      );
+    } else if (isFailure) {
+      let reason = '';
+      const match = resultStr.match(/\(([^)]+)\)/);
+      if (match) {
+        reason = `(${match[1]})`;
+      } else {
+        reason = '(오류)';
+      }
+      return (
+        <div style={{ color, fontWeight: 700, lineHeight: '1.2', textAlign: 'center' }}>
+          <div>실패</div>
+          <div style={{ fontSize: '0.75rem', fontWeight: 500, opacity: 0.8, marginTop: '2.5px', whiteSpace: 'pre-line' }}>{reason}</div>
+        </div>
+      );
+    } else {
+      return <span style={{ color }}>{resultStr}</span>;
+    }
+  };
 
   return (
     <div className="admin-page-wrapper">
@@ -653,6 +817,21 @@ export default function Home() {
                 }}
               >
                 📝 학생 등하교 기록 관리
+              </button>
+              <button
+                onClick={() => setDashboardTab('deleted_attendance')}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  background: dashboardTab === 'deleted_attendance' ? 'rgba(255, 82, 82, 0.12)' : 'transparent',
+                  border: '1px solid ' + (dashboardTab === 'deleted_attendance' ? 'rgba(255, 82, 82, 0.3)' : 'transparent'),
+                  color: dashboardTab === 'deleted_attendance' ? '#ff5252' : 'rgba(255, 255, 255, 0.6)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                🗑️ 삭제된 기록 관리
               </button>
             </div>
 
@@ -971,16 +1150,16 @@ export default function Home() {
             )}
 
             {/* ----------------------------------------------------------------- */}
-            {/* 탭 3: 학생 등하교 기록 관리 */}
+            {/* 탭 3 & 4: 학생 등하교 기록 관리 및 삭제된 기록 관리 */}
             {/* ----------------------------------------------------------------- */}
-            {dashboardTab === 'attendance' && (
+            {(dashboardTab === 'attendance' || dashboardTab === 'deleted_attendance') && (
               <>
                 <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', alignItems: 'center' }}>
                   <div className="admin-search-wrapper" style={{ flex: 1 }}>
                     <span>🔍</span>
                     <input 
                       type="text" 
-                      placeholder="날짜, 학번, 이름, 구분 또는 결과로 검색..." 
+                      placeholder={dashboardTab === 'deleted_attendance' ? "삭제된 날짜, 학번, 이름, 구분 또는 결과로 검색..." : "날짜, 학번, 이름, 구분 또는 결과로 검색..."}
                       value={attendanceSearchTerm}
                       onChange={(e) => setAttendanceSearchTerm(e.target.value)}
                       className="admin-search-input"
@@ -999,14 +1178,14 @@ export default function Home() {
                         <tr>
                           <th style={{ width: '12%' }}>날짜</th>
                           <th style={{ width: '10%' }}>학번</th>
-                          <th style={{ width: '10%' }}>이름</th>
+                          <th style={{ width: '12%' }}>이름</th>
                           <th style={{ width: '10%' }}>구분</th>
                           <th style={{ width: '10%' }}>전송시간</th>
                           <th style={{ width: '12%' }}>WIFI (SSID)</th>
                           <th style={{ width: '11%' }}>GPS 상태</th>
-                          <th style={{ width: '8%' }}>결과</th>
-                          <th style={{ width: '8%' }}>서버로그</th>
-                          <th style={{ width: '9%' }}>관리</th>
+                          <th style={{ width: '11%' }}>결과</th>
+                          <th style={{ width: '12%' }}>{dashboardTab === 'deleted_attendance' ? '삭제시간' : '서버로그'}</th>
+                          <th style={{ width: '10%' }}>관리</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1019,35 +1198,48 @@ export default function Home() {
                             <tr key={rec.id}>
                               <td>{rec.date}</td>
                               <td className="admin-table-student-id">{rec.student_id}</td>
-                              <td className="admin-table-name">{rec.student_name}</td>
+                              <td className="admin-table-name">
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                  <span>{rec.student_name}</span>
+                                  {rec.original_record && (
+                                    <span style={{ fontSize: '0.7rem', color: '#ff9100', marginTop: '2px', fontWeight: 'bold' }}>(수정됨)</span>
+                                  )}
+                                </div>
+                              </td>
                               <td>
                                 <span style={{
                                   padding: '4px 8px',
                                   borderRadius: '6px',
                                   fontSize: '0.75rem',
                                   fontWeight: 600,
-                                  background: rec.type.includes('하교') ? 'rgba(255, 82, 82, 0.1)' : 'rgba(0, 230, 118, 0.1)',
-                                  color: rec.type.includes('하교') ? '#ff5252' : '#00e676'
+                                  ...getTypeBadgeStyle(rec.type)
                                 }}>{rec.type}</span>
                               </td>
                               <td style={{ fontFamily: 'var(--font-mono)' }}>{rec.time}</td>
                               <td style={{ fontSize: '0.8rem' }} title={`BSSID: ${rec.wifi_bssid}`}>{rec.wifi_ssid}</td>
                               <td style={{ fontSize: '0.8rem', color: rec.gps_status === '교실 위치 일치' ? '#00e676' : 'inherit' }}>{rec.gps_status}</td>
-                              <td>
-                                <span style={{
-                                  fontSize: '0.75rem',
-                                  fontWeight: 700,
-                                  color: rec.result === '성공' ? '#00e676' : '#ff5252'
-                                }}>{rec.result}</span>
-                              </td>
+                              <td>{renderResultCell(rec.result, rec.type)}</td>
                               <td style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                {new Date(rec.created_at).toLocaleTimeString()}
+                                {dashboardTab === 'deleted_attendance' 
+                                  ? (rec.deleted_at ? new Date(rec.deleted_at).toLocaleString('ko-KR') : '-')
+                                  : new Date(rec.created_at).toLocaleTimeString('ko-KR')
+                                }
                               </td>
                               <td>
-                                <div style={{ display: 'flex', gap: '5px' }}>
-                                  <button onClick={() => handleOpenAttendanceEditModal(rec)} className="btn-edit" style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#00c6ff', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>수정</button>
-                                  <button onClick={() => handleAttendanceDelete(rec.id)} style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#ff5252', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>삭제</button>
-                                </div>
+                                {dashboardTab === 'deleted_attendance' ? (
+                                  <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                                    <button onClick={() => handleAttendanceRestore(rec.id)} className="btn-edit" style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#00e676', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>복원</button>
+                                    <button onClick={() => handleAttendancePermanentDelete(rec.id)} style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#ff5252', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>영구 삭제</button>
+                                  </div>
+                                ) : (
+                                  <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                                    <button onClick={() => handleOpenAttendanceEditModal(rec)} className="btn-edit" style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#00c6ff', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>수정</button>
+                                    {rec.original_record && (
+                                      <button onClick={() => handleAttendanceRevert(rec.id)} style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#ff9100', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>원상복귀</button>
+                                    )}
+                                    <button onClick={() => handleAttendanceDelete(rec.id)} style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#ff5252', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>삭제</button>
+                                  </div>
+                                )}
                               </td>
                             </tr>
                           ))
