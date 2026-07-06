@@ -72,9 +72,17 @@ export default function Home() {
   const [formPhone, setFormPhone] = useState('');
   const [smsDisabled, setSmsDisabled] = useState(false);
 
-  // Tab 3: Attendance States
+  // Tab 3: Attendance States & Edit Modal
   const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
   const [attendanceSearchTerm, setAttendanceSearchTerm] = useState('');
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [selectedAttendanceId, setSelectedAttendanceId] = useState<string | null>(null);
+  const [formAttDate, setFormAttDate] = useState('');
+  const [formAttType, setFormAttType] = useState('');
+  const [formAttTime, setFormAttTime] = useState('');
+  const [formAttResult, setFormAttResult] = useState('');
+  const [formAttWifiSsid, setFormAttWifiSsid] = useState('');
+  const [formAttGpsStatus, setFormAttGpsStatus] = useState('');
 
   // 1. Initial configuration load & Session restoration
   useEffect(() => {
@@ -118,6 +126,17 @@ export default function Home() {
       }
     }
   }, []);
+
+  // Fetch data automatically when tab changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (dashboardTab === 'attendance') {
+        fetchAttendanceRecords();
+      } else if (dashboardTab === 'students') {
+        verifyAndLoad(username, password);
+      }
+    }
+  }, [isAuthenticated, dashboardTab]);
 
   // Fetch Attendance Records
   const fetchAttendanceRecords = async (userVal = username, passVal = password) => {
@@ -377,6 +396,83 @@ export default function Home() {
     localStorage.setItem('sms_disabled', checked ? 'true' : 'false');
     setSmsDisabled(checked);
     setSuccessMsg(checked ? 'SMS 발송 기능이 비활성화되었습니다.' : 'SMS 발송 기능이 활성화되었습니다.');
+  };
+
+  const handleOpenAttendanceEditModal = (rec: any) => {
+    setSelectedAttendanceId(rec.id);
+    setFormAttDate(rec.date);
+    setFormAttType(rec.type);
+    setFormAttTime(rec.time);
+    setFormAttResult(rec.result);
+    setFormAttWifiSsid(rec.wifi_ssid || '');
+    setFormAttGpsStatus(rec.gps_status || '');
+    setIsAttendanceModalOpen(true);
+  };
+
+  const handleAttendanceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAttendanceId) return;
+
+    setGlobalLoading(true);
+    setAuthError('');
+    try {
+      const token = btoa(`${username}:${password}`);
+      const res = await fetch('/api/admin/attendance', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${token}`
+        },
+        body: JSON.stringify({
+          id: selectedAttendanceId,
+          date: formAttDate,
+          type: formAttType,
+          time: formAttTime,
+          result: formAttResult,
+          wifi_ssid: formAttWifiSsid,
+          gps_status: formAttGpsStatus
+        })
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setIsAttendanceModalOpen(false);
+        setSuccessMsg('출결 기록이 성공적으로 수정되었습니다.');
+        fetchAttendanceRecords();
+      } else {
+        setAuthError(result.message || '출결 기록 수정 실패');
+      }
+    } catch (e) {
+      setAuthError('서버 연결 오류');
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  const handleAttendanceDelete = async (id: string) => {
+    if (!confirm('정말로 이 출결 기록을 삭제하시겠습니까?')) return;
+
+    setGlobalLoading(true);
+    setAuthError('');
+    try {
+      const token = btoa(`${username}:${password}`);
+      const res = await fetch(`/api/admin/attendance?id=${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Basic ${token}` }
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setSuccessMsg('출결 기록이 성공적으로 삭제되었습니다.');
+        fetchAttendanceRecords();
+      } else {
+        setAuthError(result.message || '출결 기록 삭제 실패');
+      }
+    } catch (e) {
+      setAuthError('서버 연결 오류');
+    } finally {
+      setGlobalLoading(false);
+    }
   };
 
   // ----------------------------------------------------
@@ -906,16 +1002,17 @@ export default function Home() {
                           <th style={{ width: '10%' }}>이름</th>
                           <th style={{ width: '10%' }}>구분</th>
                           <th style={{ width: '10%' }}>전송시간</th>
-                          <th style={{ width: '15%' }}>WIFI (SSID)</th>
-                          <th style={{ width: '13%' }}>GPS 상태</th>
-                          <th style={{ width: '10%' }}>결과</th>
-                          <th style={{ width: '10%' }}>서버로그</th>
+                          <th style={{ width: '12%' }}>WIFI (SSID)</th>
+                          <th style={{ width: '11%' }}>GPS 상태</th>
+                          <th style={{ width: '8%' }}>결과</th>
+                          <th style={{ width: '8%' }}>서버로그</th>
+                          <th style={{ width: '9%' }}>관리</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredAttendance.length === 0 ? (
                           <tr>
-                            <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>출결 기록이 존재하지 않습니다.</td>
+                            <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>출결 기록이 존재하지 않습니다.</td>
                           </tr>
                         ) : (
                           filteredAttendance.map((rec) => (
@@ -945,6 +1042,12 @@ export default function Home() {
                               </td>
                               <td style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                                 {new Date(rec.created_at).toLocaleTimeString()}
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '5px' }}>
+                                  <button onClick={() => handleOpenAttendanceEditModal(rec)} className="btn-edit" style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#00c6ff', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>수정</button>
+                                  <button onClick={() => handleAttendanceDelete(rec.id)} style={{ padding: '3px 8px', fontSize: '0.75rem', background: '#ff5252', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>삭제</button>
+                                </div>
                               </td>
                             </tr>
                           ))
@@ -1003,6 +1106,94 @@ export default function Home() {
 
               <div className="admin-modal-buttons">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="btn-cancel">취소</button>
+                <button type="submit" className="btn-save">저장</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 출결 기록 수정 모달 */}
+      {isAttendanceModalOpen && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-card">
+            <h3 className="admin-modal-title">출결 기록 수정</h3>
+            <form onSubmit={handleAttendanceSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="admin-input-group">
+                <label className="admin-input-label">날짜 (yyyy-MM-dd)</label>
+                <input 
+                  type="text" 
+                  placeholder="예: 2026-07-06" 
+                  value={formAttDate}
+                  onChange={(e) => setFormAttDate(e.target.value)}
+                  className="admin-input-text"
+                  required
+                />
+              </div>
+
+              <div className="admin-input-group">
+                <label className="admin-input-label">구분 (등교 / 하교 / 지각)</label>
+                <select 
+                  value={formAttType}
+                  onChange={(e) => setFormAttType(e.target.value)}
+                  className="admin-input-text"
+                  style={{ background: 'var(--bg-card)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px 14px', borderRadius: '8px' }}
+                  required
+                >
+                  <option value="등교">등교</option>
+                  <option value="지각">지각</option>
+                  <option value="하교">하교</option>
+                </select>
+              </div>
+
+              <div className="admin-input-group">
+                <label className="admin-input-label">전송시간 (HH:mm)</label>
+                <input 
+                  type="text" 
+                  placeholder="예: 08:30" 
+                  value={formAttTime}
+                  onChange={(e) => setFormAttTime(e.target.value)}
+                  className="admin-input-text"
+                  required
+                />
+              </div>
+
+              <div className="admin-input-group">
+                <label className="admin-input-label">결과 (성공 / 실패)</label>
+                <select 
+                  value={formAttResult}
+                  onChange={(e) => setFormAttResult(e.target.value)}
+                  className="admin-input-text"
+                  style={{ background: 'var(--bg-card)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px 14px', borderRadius: '8px' }}
+                  required
+                >
+                  <option value="성공">성공</option>
+                  <option value="실패">실패</option>
+                </select>
+              </div>
+
+              <div className="admin-input-group">
+                <label className="admin-input-label">WIFI (SSID)</label>
+                <input 
+                  type="text" 
+                  value={formAttWifiSsid}
+                  onChange={(e) => setFormAttWifiSsid(e.target.value)}
+                  className="admin-input-text"
+                />
+              </div>
+
+              <div className="admin-input-group">
+                <label className="admin-input-label">GPS 상태</label>
+                <input 
+                  type="text" 
+                  value={formAttGpsStatus}
+                  onChange={(e) => setFormAttGpsStatus(e.target.value)}
+                  className="admin-input-text"
+                />
+              </div>
+
+              <div className="admin-modal-buttons">
+                <button type="button" onClick={() => setIsAttendanceModalOpen(false)} className="btn-cancel">취소</button>
                 <button type="submit" className="btn-save">저장</button>
               </div>
             </form>
