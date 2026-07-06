@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchComciTimetable, TimetableResult } from '../../../utils/comci-crawler';
+import { supabase } from '@/utils/supabase';
 
 interface CacheEntry<T> {
   data: T;
@@ -11,13 +12,7 @@ const timetableCache = new Map<string, CacheEntry<TimetableResult>>();
 const locationCache = new Map<string, CacheEntry<{ locations: Record<string, string>; bssids: Record<string, string> }>>();
 
 async function fetchLocationRules(classNum: number, queryScriptUrl?: string | null, forceRefresh: boolean = false): Promise<{ locations: Record<string, string>; bssids: Record<string, string> }> {
-  const scriptUrl = queryScriptUrl || process.env.APPS_SCRIPT_URL;
-  if (!scriptUrl) {
-    console.warn("Apps Script URL is not provided.");
-    return { locations: {}, bssids: {} };
-  }
-
-  const cacheKey = `loc_${classNum}_${scriptUrl}`;
+  const cacheKey = `loc_supabase_${classNum}`;
   const now = Date.now();
   
   if (!forceRefresh) {
@@ -27,35 +22,73 @@ async function fetchLocationRules(classNum: number, queryScriptUrl?: string | nu
     }
   }
 
-  // Construct URL
-  const fetchUrl = `${scriptUrl}${scriptUrl.includes('?') ? '&' : '?'}action=getLocations&classNum=${classNum}`;
+  const gradeClass = `1-${String(classNum).padStart(2, '0')}`;
   
   try {
-    const res = await fetch(fetchUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch from Apps Script (HTTP ${res.status})`);
+    const { data, error } = await supabase
+      .from('subject_locations')
+      .select('subject, location')
+      .eq('grade_class', gradeClass);
+
+    if (error) {
+      throw error;
     }
-    const data = await res.json();
-    const result = {
-      locations: data.locations || {},
-      bssids: data.bssids || {}
+
+    const locations: Record<string, string> = {};
+    // 기본 과목들 초기값으로 교실 지정
+    const defaultSubjects = ["공국", "공영", "공수", "통사", "통과 A", "통과 B", "과탐실", "한국사", "한문", "로봇", "체육", "진로"];
+    defaultSubjects.forEach(sub => {
+      locations[sub] = "교실";
+    });
+
+    if (data) {
+      data.forEach((row: { subject: string; location: string }) => {
+        locations[row.subject] = row.location;
+      });
+    }
+
+    // bssids 맵 구성 (기존의 1학년 1반~10반의 BSSID 규칙과 매핑)
+    const bssids: Record<string, string> = {
+      "제1과학실": "1c:ec:72:11:5a:f8",
+      "제2과학실": "1c:ec:72:11:0b:9d",
+      "제3과학실": "1c:ec:72:11:0b:a2",
+      "창의공학실": "1c:ec:72:11:0b:a7",
+      "진로실": "1c:ec:72:11:0b:ca",
+      "체육관": "1c:ec:72:11:0b:cf",
+      "운동장": "1c:ec:72:11:0b:d4",
+      "기타": ""
     };
-    
-    // Cache the result for 30 minutes
+
+    const result = { locations, bssids };
+
+    // Cache the result for 15 minutes
     locationCache.set(cacheKey, {
       data: result,
-      expiry: now + 30 * 60 * 1000
+      expiry: now + 15 * 60 * 1000
     });
-    
+
     return result;
-  } catch (error) {
-    console.error("Error fetching location rules:", error);
-    return { locations: {}, bssids: {} };
+  } catch (err) {
+    console.error("Error fetching location rules from Supabase:", err);
+    // Fallback to default locations
+    const locations: Record<string, string> = {};
+    const defaultSubjects = ["공국", "공영", "공수", "통사", "통과 A", "통과 B", "과탐실", "한국사", "한문", "로봇", "체육", "진로"];
+    defaultSubjects.forEach(sub => {
+      locations[sub] = "교실";
+    });
+    return { 
+      locations, 
+      bssids: {
+        "제1과학실": "1c:ec:72:11:5a:f8",
+        "제2과학실": "1c:ec:72:11:0b:9d",
+        "제3과학실": "1c:ec:72:11:0b:a2",
+        "창의공학실": "1c:ec:72:11:0b:a7",
+        "진로실": "1c:ec:72:11:0b:ca",
+        "체육관": "1c:ec:72:11:0b:cf",
+        "운동장": "1c:ec:72:11:0b:d4",
+        "기타": ""
+      } 
+    };
   }
 }
 
@@ -120,8 +153,8 @@ export async function GET(request: Request) {
       // 과목 매핑 보완 (한글/영문 대체 명칭 대응)
       if (subject === '통과A' && locations['통과 A']) location = locations['통과 A'];
       if (subject === '통과B' && locations['통과 B']) location = locations['통과 B'];
-      if (subject === '체육' && locations['체육1']) location = locations['체육1'];
-      if (subject === '체육1' && locations['체육']) location = locations['체육'];
+      if ((subject === '체육' || subject === '체육1' || subject === '체육2') && locations['체육']) location = locations['체육'];
+      if ((subject === '진로' || subject === '진로진학' || subject === '진로직업' || subject === '진로활동') && locations['진로']) location = locations['진로'];
       if (subject === '국어' && locations['공국']) location = locations['공국'];
       if (subject === '공국' && locations['국어']) location = locations['국어'];
       if (subject === '영어' && locations['공영']) location = locations['공영'];

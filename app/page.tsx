@@ -42,9 +42,15 @@ export default function Home() {
 
   // Unified Dashboard Navigation Tab
   // 'timetable' = 컴시간 시간표 확인
+  // 'locations' = 수업 위치 정보
   // 'students' = 학생 명단 관리
   // 'attendance' = 학생 등하교 기록 관리
-  const [dashboardTab, setDashboardTab] = useState<'timetable' | 'students' | 'attendance' | 'deleted_attendance'>('timetable');
+  const [dashboardTab, setDashboardTab] = useState<'timetable' | 'locations' | 'students' | 'attendance' | 'deleted_attendance'>('timetable');
+
+  // Tab: Classroom Locations States
+  const [locationsList, setLocationsList] = useState<any[]>([]);
+  const [selectedLocationClass, setSelectedLocationClass] = useState<string | null>(null); // e.g. "1-01"
+  const [formLocations, setFormLocations] = useState<Record<string, string>>({}); // { subject: location }
 
   // Tab 1: Timetable States
   const [schoolCode, setSchoolCode] = useState('27121');
@@ -129,6 +135,8 @@ export default function Home() {
         fetchAttendanceRecords();
       } else if (dashboardTab === 'students') {
         verifyAndLoad(username, password);
+      } else if (dashboardTab === 'locations') {
+        fetchLocations();
       }
     }
   }, [isAuthenticated, dashboardTab]);
@@ -147,6 +155,64 @@ export default function Home() {
         setAttendanceRecords(result.records || []);
       } else {
         setAuthError(result.message || '출결 데이터를 불러오는데 실패했습니다.');
+      }
+    } catch (e) {
+      setAuthError('서버 연결 오류');
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  // Fetch Subject Locations
+  const fetchLocations = async (userVal = username, passVal = password) => {
+    setGlobalLoading(true);
+    setAuthError('');
+    try {
+      const token = btoa(`${userVal}:${passVal}`);
+      const res = await fetch('/api/admin/locations', {
+        headers: { 'Authorization': `Basic ${token}` }
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setLocationsList(result.records || []);
+      } else {
+        setAuthError(result.message || '수업 위치 데이터를 불러오는데 실패했습니다.');
+      }
+    } catch (e) {
+      setAuthError('서버 연결 오류');
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  // Save Subject Locations
+  const handleLocationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLocationClass) return;
+
+    setGlobalLoading(true);
+    setAuthError('');
+    try {
+      const token = btoa(`${username}:${password}`);
+      const res = await fetch('/api/admin/locations', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${token}`
+        },
+        body: JSON.stringify({
+          gradeClass: selectedLocationClass,
+          locations: formLocations
+        })
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setSelectedLocationClass(null);
+        setSuccessMsg('수업 위치 정보가 성공적으로 저장되었습니다.');
+        fetchLocations();
+      } else {
+        setAuthError(result.message || '수업 위치 저장 실패');
       }
     } catch (e) {
       setAuthError('서버 연결 오류');
@@ -792,6 +858,21 @@ export default function Home() {
                 📅 컴시간 시간표 확인
               </button>
               <button
+                onClick={() => setDashboardTab('locations')}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  background: dashboardTab === 'locations' ? 'rgba(0, 198, 255, 0.12)' : 'transparent',
+                  border: '1px solid ' + (dashboardTab === 'locations' ? 'rgba(0, 198, 255, 0.3)' : 'transparent'),
+                  color: dashboardTab === 'locations' ? '#00c6ff' : 'rgba(255, 255, 255, 0.6)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                📍 수업 위치 정보
+              </button>
+              <button
                 onClick={() => setDashboardTab('students')}
                 style={{
                   padding: '10px 20px',
@@ -1058,6 +1139,182 @@ export default function Home() {
                   )}
                 </section>
               </div>
+            )}
+
+            {/* ----------------------------------------------------------------- */}
+            {/* 📍 수업 위치 정보 탭 */}
+            {/* ----------------------------------------------------------------- */}
+            {dashboardTab === 'locations' && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#fff' }}>📍 학급별 수업 위치 설정</h3>
+                  <button onClick={() => fetchLocations()} className="btn-action">
+                    🔄 새로고침
+                  </button>
+                </div>
+
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(2, 1fr)', 
+                  gap: '20px', 
+                  marginBottom: '30px'
+                }}>
+                  {Array.from({ length: 10 }).map((_, idx) => {
+                    const classNumInt = idx + 1;
+                    const classId = `1-${String(classNumInt).padStart(2, '0')}`;
+                    const className = `1학년 ${classNumInt}반`;
+                    
+                    // 해당 반의 기존 커스텀 위치 정보 필터링
+                    const classLocs = locationsList.filter(l => l.grade_class === classId && l.location !== '교실');
+
+                    return (
+                      <div 
+                        key={classId} 
+                        style={{
+                          background: 'var(--bg-card)',
+                          border: '1px solid rgba(255, 255, 255, 0.05)',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          minHeight: '180px',
+                          transition: 'transform 0.2s',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => {
+                          const currentLocs = locationsList.filter(l => l.grade_class === classId);
+                          const initialForm: Record<string, string> = {};
+                          const defaultSubjects = ["공국", "공영", "공수", "통사", "통과 A", "통과 B", "과탐실", "한국사", "한문", "로봇", "체육", "진로"];
+                          defaultSubjects.forEach(sub => {
+                            const match = currentLocs.find(l => l.subject === sub);
+                            initialForm[sub] = match ? match.location : "교실";
+                          });
+                          setFormLocations(initialForm);
+                          setSelectedLocationClass(classId);
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                            <h4 style={{ margin: 0, fontSize: '1.1rem', color: '#00c6ff', fontWeight: 'bold' }}>{className}</h4>
+                            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-mono)' }}>{classId}</span>
+                          </div>
+                          
+                          <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                            {classLocs.length === 0 ? (
+                              <p style={{ margin: 0, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>모든 과목 위치가 "교실"로 지정되어 있습니다.</p>
+                            ) : (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+                                {classLocs.map(loc => (
+                                  <span 
+                                    key={loc.id} 
+                                    style={{
+                                      background: 'rgba(0, 198, 255, 0.1)',
+                                      color: '#00c6ff',
+                                      border: '1px solid rgba(0, 198, 255, 0.2)',
+                                      padding: '3px 8px',
+                                      borderRadius: '6px',
+                                      fontSize: '0.75rem'
+                                    }}
+                                  >
+                                    {loc.subject}: {loc.location}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <button 
+                          style={{
+                            marginTop: '20px',
+                            background: 'rgba(0, 198, 255, 0.15)',
+                            border: '1px solid rgba(0, 198, 255, 0.3)',
+                            borderRadius: '8px',
+                            padding: '8px 12px',
+                            color: '#00c6ff',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            width: '100%',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          📍 수업 위치 설정 / 수정
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* 수업 위치 편집 모달 */}
+                {selectedLocationClass && (
+                  <div className="admin-modal-overlay">
+                    <div className="admin-modal-card" style={{ maxWidth: '650px', width: '95%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+                      <h3 className="admin-modal-title" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
+                        📍 {selectedLocationClass === '1-10' ? '1학년 10반' : `1학년 ${selectedLocationClass.split('-')[1].replace(/^0/, '')}반`} 과목별 수업 위치 설정
+                      </h3>
+                      
+                      <form onSubmit={handleLocationSubmit} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+                        <div style={{ overflowY: 'auto', paddingRight: '6px', flex: 1, marginBottom: '20px' }}>
+                          <table className="admin-table" style={{ width: '100%' }}>
+                            <thead>
+                              <tr>
+                                <th style={{ width: '40%', textAlign: 'left', paddingLeft: '12px' }}>과목 이름</th>
+                                <th style={{ width: '60%', textAlign: 'left', paddingLeft: '12px' }}>수업 진행 위치 지정</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {["공국", "공영", "공수", "통사", "통과 A", "통과 B", "과탐실", "한국사", "한문", "로봇", "체육", "진로"].map(sub => (
+                                <tr key={sub}>
+                                  <td style={{ textAlign: 'left', paddingLeft: '12px', fontWeight: 'bold' }}>{sub}</td>
+                                  <td style={{ textAlign: 'left', paddingLeft: '12px' }}>
+                                    <select 
+                                      value={formLocations[sub] || '교실'}
+                                      onChange={(e) => setFormLocations({
+                                        ...formLocations,
+                                        [sub]: e.target.value
+                                      })}
+                                      className="admin-input-text"
+                                      style={{ 
+                                        background: 'var(--bg-card)', 
+                                        color: '#fff', 
+                                        border: '1px solid rgba(255,255,255,0.1)', 
+                                        padding: '6px 12px', 
+                                        borderRadius: '6px',
+                                        width: '100%',
+                                        maxWidth: '220px'
+                                      }}
+                                    >
+                                      <option value="교실">교실</option>
+                                      <option value="제1과학실">제1과학실</option>
+                                      <option value="제2과학실">제2과학실</option>
+                                      <option value="제3과학실">제3과학실</option>
+                                      <option value="창의공학실">창의공학실</option>
+                                      <option value="진로실">진로실</option>
+                                      <option value="체육관">체육관</option>
+                                      <option value="운동장">운동장</option>
+                                      <option value="기타">기타</option>
+                                    </select>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="admin-modal-buttons" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button type="button" onClick={() => setSelectedLocationClass(null)} className="btn-cancel">취소</button>
+                          <button type="submit" className="btn-save">저장</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* ----------------------------------------------------------------- */}
