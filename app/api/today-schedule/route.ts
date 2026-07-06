@@ -9,19 +9,8 @@ interface CacheEntry<T> {
 
 // In-memory caches
 const timetableCache = new Map<string, CacheEntry<TimetableResult>>();
-const locationCache = new Map<string, CacheEntry<{ locations: Record<string, string>; bssids: Record<string, string> }>>();
 
 async function fetchLocationRules(classNum: number, queryScriptUrl?: string | null, forceRefresh: boolean = false): Promise<{ locations: Record<string, string>; bssids: Record<string, string> }> {
-  const cacheKey = `loc_supabase_${classNum}`;
-  const now = Date.now();
-  
-  if (!forceRefresh) {
-    const cached = locationCache.get(cacheKey);
-    if (cached && cached.expiry > now) {
-      return cached.data;
-    }
-  }
-
   const gradeClass = `1-${String(classNum).padStart(2, '0')}`;
   
   try {
@@ -60,13 +49,6 @@ async function fetchLocationRules(classNum: number, queryScriptUrl?: string | nu
     };
 
     const result = { locations, bssids };
-
-    // Cache the result for 15 minutes
-    locationCache.set(cacheKey, {
-      data: result,
-      expiry: now + 15 * 60 * 1000
-    });
-
     return result;
   } catch (err) {
     console.error("Error fetching location rules from Supabase:", err);
