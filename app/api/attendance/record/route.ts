@@ -34,10 +34,12 @@ export async function POST(request: Request) {
       );
     }
 
+    const finalType = type === '지각' ? '미인정 지각' : type;
+
     const { error } = await supabase.from('attendance_records').insert([
       {
         date,
-        type,
+        type: finalType,
         time,
         student_name: studentName,
         student_id: studentId,

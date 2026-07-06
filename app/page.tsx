@@ -456,7 +456,7 @@ export default function Home() {
 
   const handleOpenAttendanceDetailModal = (rec: any) => {
     setSelectedAttRecord(rec);
-    setFormAttType(rec.type);
+    setFormAttType(rec.type === '지각' ? '미인정 지각' : rec.type);
     setIsAttendanceModalOpen(true);
   };
 
@@ -667,13 +667,13 @@ export default function Home() {
         color: '#00e676',
         border: '1px solid rgba(0, 230, 118, 0.2)'
       };
-    } else if (typeStr.includes('지각')) {
+    } else if (typeStr.includes('미인정 지각') || typeStr.includes('미인정 조퇴') || typeStr === '지각') {
       return {
         background: 'rgba(255, 82, 82, 0.1)',
         color: '#ff5252',
         border: '1px solid rgba(255, 82, 82, 0.2)'
       };
-    } else if (typeStr.includes('조퇴')) {
+    } else if (typeStr.includes('인정 지각') || typeStr.includes('인정 조퇴')) {
       return {
         background: 'rgba(255, 196, 0, 0.1)',
         color: '#ffc400',
@@ -698,15 +698,16 @@ export default function Home() {
     const isSuccess = resultStr.includes('성공');
     const isFailure = resultStr.includes('실패');
     const color = isSuccess ? '#00e676' : (isFailure ? '#ff5252' : '#ffffff');
+    const displayType = typeStr === '지각' ? '미인정 지각' : typeStr;
     
     if (isSuccess) {
       let subtext = '';
       if (resultStr.includes('자동')) {
-        subtext = `(자동 ${typeStr})`;
+        subtext = `(자동 ${displayType})`;
       } else if (resultStr.includes('수동') || resultStr.includes('원클릭')) {
-        subtext = `(수동 ${typeStr})`;
+        subtext = `(수동 ${displayType})`;
       } else {
-        subtext = `(수동 ${typeStr})`;
+        subtext = `(수동 ${displayType})`;
       }
       return (
         <div style={{ color, fontWeight: 700, lineHeight: '1.2', textAlign: 'center' }}>
@@ -1233,71 +1234,6 @@ export default function Home() {
                     );
                   })}
                 </div>
-
-                {/* 수업 위치 편집 모달 */}
-                {selectedLocationClass && (
-                  <div className="admin-modal-overlay">
-                    <div className="admin-modal-card" style={{ maxWidth: '650px', width: '95%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-                      <h3 className="admin-modal-title" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
-                        📍 {selectedLocationClass === '1-10' ? '1학년 10반' : `1학년 ${selectedLocationClass.split('-')[1].replace(/^0/, '')}반`} 과목별 수업 위치 설정
-                      </h3>
-                      
-                      <form onSubmit={handleLocationSubmit} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
-                        <div style={{ overflowY: 'auto', paddingRight: '6px', flex: 1, marginBottom: '20px' }}>
-                          <table className="admin-table" style={{ width: '100%' }}>
-                            <thead>
-                              <tr>
-                                <th style={{ width: '40%', textAlign: 'left', paddingLeft: '12px' }}>과목 이름</th>
-                                <th style={{ width: '60%', textAlign: 'left', paddingLeft: '12px' }}>수업 진행 위치 지정</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {["공국", "공영", "공수", "통사", "통과 A", "통과 B", "과탐실", "한국사", "한문", "로봇", "체육", "진로"].map(sub => (
-                                <tr key={sub}>
-                                  <td style={{ textAlign: 'left', paddingLeft: '12px', fontWeight: 'bold' }}>{sub}</td>
-                                  <td style={{ textAlign: 'left', paddingLeft: '12px' }}>
-                                    <select 
-                                      value={formLocations[sub] || '교실'}
-                                      onChange={(e) => setFormLocations({
-                                        ...formLocations,
-                                        [sub]: e.target.value
-                                      })}
-                                      className="admin-input-text"
-                                      style={{ 
-                                        background: 'var(--bg-card)', 
-                                        color: '#fff', 
-                                        border: '1px solid rgba(255,255,255,0.1)', 
-                                        padding: '6px 12px', 
-                                        borderRadius: '6px',
-                                        width: '100%',
-                                        maxWidth: '220px'
-                                      }}
-                                    >
-                                      <option value="교실">교실</option>
-                                      <option value="제1과학실">제1과학실</option>
-                                      <option value="제2과학실">제2과학실</option>
-                                      <option value="제3과학실">제3과학실</option>
-                                      <option value="창의공학실">창의공학실</option>
-                                      <option value="진로실">진로실</option>
-                                      <option value="체육관">체육관</option>
-                                      <option value="운동장">운동장</option>
-                                      <option value="기타">기타</option>
-                                    </select>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-
-                        <div className="admin-modal-buttons" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button type="button" onClick={() => setSelectedLocationClass(null)} className="btn-cancel">취소</button>
-                          <button type="submit" className="btn-save">저장</button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                )}
               </>
             )}
 
@@ -1306,8 +1242,17 @@ export default function Home() {
             {/* ----------------------------------------------------------------- */}
             {dashboardTab === 'students' && (
               <>
-                <div className="admin-control-bar">
-                  <div className="admin-search-wrapper">
+                {/* 첫째 줄: 학생 검색, 등록 인원, 신규 학생 등록 */}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  gap: '16px', 
+                  marginBottom: '16px',
+                  flexWrap: 'wrap'
+                }}>
+                  {/* 검색창 */}
+                  <div className="admin-search-wrapper" style={{ flex: 2, minWidth: '260px', margin: 0 }}>
                     <span>🔍</span>
                     <input 
                       type="text" 
@@ -1319,27 +1264,67 @@ export default function Home() {
                     {searchTerm && <button onClick={() => setSearchTerm('')} className="admin-search-clear">지우기</button>}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.05)', padding: '8px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>SMS 임시 중단</span>
-                    <input 
-                      type="checkbox" 
-                      checked={smsDisabled} 
-                      onChange={(e) => handleSmsToggle(e.target.checked)}
-                      style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                    />
+                  {/* 등록 인원 현황 */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    borderRadius: '12px',
+                    padding: '10px 18px',
+                    fontSize: '0.85rem',
+                    height: '46px'
+                  }}>
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>👥 등록된 학생:</span>
+                    <span style={{ color: '#00c6ff', fontWeight: 'bold' }}>{filteredStudents.length} / {students.length} 명</span>
                   </div>
 
-                  <button onClick={() => openModal('add')} className="btn-add-student">
+                  {/* 신규 등록 버튼 */}
+                  <button onClick={() => openModal('add')} className="btn-add-student" style={{ margin: 0, height: '46px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     + 신규 학생 사전등록
                   </button>
+                </div>
 
-                  <div className="admin-stat-card">
-                    <div>
-                      <div className="admin-stat-label">등록 인원</div>
-                      <div className="admin-stat-val">{filteredStudents.length} / {students.length} 명</div>
-                    </div>
-                    <div className="admin-stat-icon">✓</div>
-                  </div>
+                {/* 둘째 줄: SMS 전송 임시 중단 토글 버튼 */}
+                <div style={{ marginBottom: '25px' }}>
+                  <button 
+                    type="button"
+                    onClick={() => handleSmsToggle(!smsDisabled)}
+                    style={{
+                      background: smsDisabled ? 'rgba(255, 76, 76, 0.12)' : 'rgba(0, 230, 118, 0.12)',
+                      border: `1px solid ${smsDisabled ? 'rgba(255, 76, 76, 0.3)' : 'rgba(0, 230, 118, 0.25)'}`,
+                      borderRadius: '12px',
+                      padding: '10px 20px',
+                      color: smsDisabled ? '#ff4c4c' : '#00e676',
+                      fontWeight: 'bold',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s',
+                      width: 'fit-content'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = smsDisabled ? 'rgba(255, 76, 76, 0.18)' : 'rgba(0, 230, 118, 0.18)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = smsDisabled ? 'rgba(255, 76, 76, 0.12)' : 'rgba(0, 230, 118, 0.12)';
+                    }}
+                  >
+                    <span>💬 SMS 전송 상태:</span>
+                    <span style={{ 
+                      background: smsDisabled ? '#ff4c4c' : '#00e676', 
+                      color: '#000', 
+                      padding: '2px 8px', 
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 800
+                    }}>
+                      {smsDisabled ? '임시 중단됨' : '정상 작동중'}
+                    </span>
+                  </button>
                 </div>
 
                 <div className="admin-table-panel">
@@ -1454,10 +1439,10 @@ export default function Home() {
                                   fontSize: '0.75rem',
                                   fontWeight: 600,
                                   ...getTypeBadgeStyle(rec.type)
-                                }}>{rec.type}</span>
+                                }}>{rec.type === '지각' ? '미인정 지각' : rec.type}</span>
                               </td>
                               <td style={{ fontFamily: 'var(--font-mono)' }}>{rec.time}</td>
-                              <td>{renderResultCell(rec.result, rec.type)}</td>
+                              <td>{renderResultCell(rec.result, rec.type === '지각' ? '미인정 지각' : rec.type)}</td>
                               <td>
                                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                                   <button onClick={() => handleOpenAttendanceDetailModal(rec)} className="btn-edit" style={{ padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(0, 198, 255, 0.15)', color: '#00c6ff', border: '1px solid rgba(0, 198, 255, 0.3)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}>상세 정보 및 관리</button>
@@ -1475,6 +1460,71 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* 수업 위치 편집 모달 */}
+      {selectedLocationClass && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-card" style={{ maxWidth: '650px', width: '95%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <h3 className="admin-modal-title" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
+              📍 {selectedLocationClass === '1-10' ? '1학년 10반' : `1학년 ${selectedLocationClass.split('-')[1].replace(/^0/, '')}반`} 과목별 수업 위치 설정
+            </h3>
+            
+            <form onSubmit={handleLocationSubmit} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+              <div style={{ overflowY: 'auto', paddingRight: '6px', flex: 1, marginBottom: '20px' }}>
+                <table className="admin-table" style={{ width: '100%' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '40%', textAlign: 'left', paddingLeft: '12px' }}>과목 이름</th>
+                      <th style={{ width: '60%', textAlign: 'left', paddingLeft: '12px' }}>수업 진행 위치 지정</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {["공국", "공영", "공수", "통사", "통과 A", "통과 B", "과탐실", "한국사", "한문", "로봇", "체육", "진로"].map(sub => (
+                      <tr key={sub}>
+                        <td style={{ textAlign: 'left', paddingLeft: '12px', fontWeight: 'bold' }}>{sub}</td>
+                        <td style={{ textAlign: 'left', paddingLeft: '12px' }}>
+                          <select 
+                            value={formLocations[sub] || '교실'}
+                            onChange={(e) => setFormLocations({
+                              ...formLocations,
+                              [sub]: e.target.value
+                            })}
+                            className="admin-input-text"
+                            style={{ 
+                              background: 'var(--bg-card)', 
+                              color: '#fff', 
+                              border: '1px solid rgba(255,255,255,0.1)', 
+                              padding: '6px 12px', 
+                              borderRadius: '6px',
+                              width: '100%',
+                              maxWidth: '220px'
+                            }}
+                          >
+                            <option value="교실">교실</option>
+                            <option value="제1과학실">제1과학실</option>
+                            <option value="제2과학실">제2과학실</option>
+                            <option value="제3과학실">제3과학실</option>
+                            <option value="창의공학실">창의공학실</option>
+                            <option value="진로실">진로실</option>
+                            <option value="체육관">체육관</option>
+                            <option value="운동장">운동장</option>
+                            <option value="기타">기타</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="admin-modal-buttons" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setSelectedLocationClass(null)} className="btn-cancel">취소</button>
+                <button type="submit" className="btn-save">저장</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* CRUD 등록/수정 모달 */}
       {isModalOpen && (
