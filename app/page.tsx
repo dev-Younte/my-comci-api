@@ -1060,8 +1060,8 @@ export default function Home() {
                 className="admin-banner admin-banner-success"
                 style={{
                   position: 'fixed',
-                  top: '80px',
-                  right: '24px',
+                  top: '101px',
+                  right: 'max(24px, calc(50% - 550px + 24px))',
                   zIndex: 99,
                   margin: 0,
                   maxWidth: '380px',
@@ -1070,7 +1070,7 @@ export default function Home() {
                   border: '1px solid rgba(0, 230, 118, 0.3)',
                   boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.5)',
                   opacity: successVisible ? 1 : 0,
-                  transform: successVisible ? 'translateY(0) scale(1)' : 'translateY(-50px) scale(0.95)',
+                  transform: successVisible ? 'translateY(0) scale(1)' : 'translateY(-45px) scale(0.95)',
                   transition: 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                 }}
               >
@@ -1393,17 +1393,17 @@ export default function Home() {
             {/* ----------------------------------------------------------------- */}
             {dashboardTab === 'students' && (
               <>
-                {/* 첫째 줄: 학생 검색, 등록 인원, 신규 학생 등록 */}
+                {/* 최상단 컨트롤 (1줄 병합): 학생 정보 검색, SMS 전송, 등록 학생 수, 신규 등록 */}
                 <div style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'space-between', 
-                  gap: '16px', 
-                  marginBottom: '16px',
+                  gap: '12px', 
+                  marginBottom: '20px',
                   flexWrap: 'wrap'
                 }}>
                   {/* 검색창 */}
-                  <div className="admin-search-wrapper" style={{ flex: 2, minWidth: '260px', margin: 0 }}>
+                  <div className="admin-search-wrapper" style={{ flex: '2 1 240px', margin: 0, height: '46px' }}>
                     <span>🔍</span>
                     <input 
                       type="text" 
@@ -1415,30 +1415,7 @@ export default function Home() {
                     {searchTerm && <button onClick={() => setSearchTerm('')} className="admin-search-clear">지우기</button>}
                   </div>
 
-                  {/* 등록 인원 현황 */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    background: 'rgba(255,255,255,0.02)',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                    borderRadius: '12px',
-                    padding: '10px 18px',
-                    fontSize: '0.85rem',
-                    height: '46px'
-                  }}>
-                    <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>👥 등록된 학생:</span>
-                    <span style={{ color: '#00c6ff', fontWeight: 'bold' }}>{filteredStudents.length} / {students.length} 명</span>
-                  </div>
-
-                  {/* 신규 등록 버튼 */}
-                  <button onClick={() => openModal('add')} className="btn-add-student" style={{ margin: 0, height: '46px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    + 신규 학생 사전등록
-                  </button>
-                </div>
-
-                {/* 둘째 줄: SMS 전송 임시 중단 토글 버튼 */}
-                <div style={{ marginBottom: '25px' }}>
+                  {/* SMS 전송 상태 토글 버튼 */}
                   <button 
                     type="button"
                     onClick={() => handleSmsToggle(!smsDisabled)}
@@ -1446,16 +1423,17 @@ export default function Home() {
                       background: smsDisabled ? 'rgba(255, 76, 76, 0.12)' : 'rgba(0, 230, 118, 0.12)',
                       border: `1px solid ${smsDisabled ? 'rgba(255, 76, 76, 0.3)' : 'rgba(0, 230, 118, 0.25)'}`,
                       borderRadius: '12px',
-                      padding: '10px 20px',
+                      padding: '10px 16px',
                       color: smsDisabled ? '#ff4c4c' : '#00e676',
                       fontWeight: 'bold',
-                      fontSize: '0.85rem',
+                      fontSize: '0.8rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
+                      gap: '6px',
                       transition: 'all 0.2s',
-                      width: 'fit-content'
+                      height: '46px',
+                      whiteSpace: 'nowrap'
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = smsDisabled ? 'rgba(255, 76, 76, 0.18)' : 'rgba(0, 230, 118, 0.18)';
@@ -1464,17 +1442,39 @@ export default function Home() {
                       e.currentTarget.style.background = smsDisabled ? 'rgba(255, 76, 76, 0.12)' : 'rgba(0, 230, 118, 0.12)';
                     }}
                   >
-                    <span>💬 SMS 전송 상태:</span>
+                    <span>💬 SMS 전송:</span>
                     <span style={{ 
                       background: smsDisabled ? '#ff4c4c' : '#00e676', 
                       color: '#000', 
-                      padding: '2px 8px', 
-                      borderRadius: '6px',
-                      fontSize: '0.75rem',
+                      padding: '2px 6px', 
+                      borderRadius: '4px',
+                      fontSize: '0.7rem',
                       fontWeight: 800
                     }}>
                       {smsDisabled ? '임시 중단됨' : '정상 작동중'}
                     </span>
+                  </button>
+
+                  {/* 등록 인원 현황 */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    borderRadius: '12px',
+                    padding: '10px 16px',
+                    fontSize: '0.8rem',
+                    height: '46px',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>👥 등록된 학생:</span>
+                    <span style={{ color: '#00c6ff', fontWeight: 'bold' }}>{filteredStudents.length} / {students.length} 명</span>
+                  </div>
+
+                  {/* 신규 등록 버튼 */}
+                  <button onClick={() => openModal('add')} className="btn-add-student" style={{ margin: 0, height: '46px', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', padding: '0 16px' }}>
+                    + 신규 학생 사전등록
                   </button>
                 </div>
 
@@ -1713,7 +1713,7 @@ export default function Home() {
                               <td>{renderResultCell(rec.result, rec.type === '지각' ? '미인정 지각' : rec.type)}</td>
                               <td>
                                 <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                  <button onClick={() => handleOpenAttendanceDetailModal(rec)} className="btn-edit" style={{ padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(0, 198, 255, 0.15)', color: '#00c6ff', border: '1px solid rgba(0, 198, 255, 0.3)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}>상세 정보 및 관리</button>
+                                  <button onClick={() => handleOpenAttendanceDetailModal(rec)} className="btn-edit" style={{ padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(0, 198, 255, 0.15)', color: '#00c6ff', border: '1px solid rgba(0, 198, 255, 0.3)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}>상세정보</button>
                                 </div>
                               </td>
                             </tr>
@@ -1849,7 +1849,7 @@ export default function Home() {
       {isAttendanceModalOpen && selectedAttRecord && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-card" style={{ maxWidth: '580px', width: '90%' }}>
-            <h3 className="admin-modal-title">출결 상세 정보 및 관리</h3>
+            <h3 className="admin-modal-title">출결 상세정보</h3>
             
             <div style={{ 
               display: 'grid', 
