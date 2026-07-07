@@ -84,6 +84,11 @@ export default function Home() {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [selectedAttRecord, setSelectedAttRecord] = useState<any | null>(null);
   const [formAttType, setFormAttType] = useState('');
+  const [selectedAttIds, setSelectedAttIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelectedAttIds([]);
+  }, [dashboardTab]);
 
   useEffect(() => {
     if (successMsg) {
@@ -622,6 +627,118 @@ export default function Home() {
     }
   };
 
+  const handleBatchDelete = async () => {
+    if (!confirm(`선택한 ${selectedAttIds.length}개 기록을 휴지통으로 이동하시겠습니까?`)) return;
+    setGlobalLoading(true);
+    setAuthError('');
+    try {
+      const token = btoa(`${username}:${password}`);
+      const res = await fetch(`/api/admin/attendance?id=${selectedAttIds.join(',')}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Basic ${token}` }
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setSelectedAttIds([]);
+        setSuccessMsg('선택한 기록들이 휴지통으로 이동되었습니다.');
+        fetchAttendanceRecords();
+      } else {
+        setAuthError(result.message || '삭제 실패');
+      }
+    } catch (e) {
+      setAuthError('서버 연결 오류');
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  const handleBatchRevert = async () => {
+    if (!confirm(`선택한 ${selectedAttIds.length}개 기록을 원래 상태로 원상복귀하시겠습니까?\n수정 전의 원래 값으로 복구됩니다.`)) return;
+    setGlobalLoading(true);
+    setAuthError('');
+    try {
+      const token = btoa(`${username}:${password}`);
+      const res = await fetch('/api/admin/attendance', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${token}`
+        },
+        body: JSON.stringify({ id: selectedAttIds, action: 'revert' })
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setSelectedAttIds([]);
+        setSuccessMsg('선택한 기록들이 원래 값으로 복구되었습니다.');
+        fetchAttendanceRecords();
+      } else {
+        setAuthError(result.message || '원상복귀 실패');
+      }
+    } catch (e) {
+      setAuthError('서버 연결 오류');
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  const handleBatchRestore = async () => {
+    if (!confirm(`선택한 ${selectedAttIds.length}개 기록을 활성 상태로 복원하시겠습니까?`)) return;
+    setGlobalLoading(true);
+    setAuthError('');
+    try {
+      const token = btoa(`${username}:${password}`);
+      const res = await fetch('/api/admin/attendance', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${token}`
+        },
+        body: JSON.stringify({ id: selectedAttIds, action: 'restore' })
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setSelectedAttIds([]);
+        setSuccessMsg('선택한 기록들이 정상 복원되었습니다.');
+        fetchAttendanceRecords();
+      } else {
+        setAuthError(result.message || '기록 복원 실패');
+      }
+    } catch (e) {
+      setAuthError('서버 연결 오류');
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  const handleBatchPermanentDelete = async () => {
+    if (!confirm(`선택한 ${selectedAttIds.length}개 기록을 영구 삭제하시겠습니까?\n이 작업은 절대 되돌릴 수 없습니다.`)) return;
+    setGlobalLoading(true);
+    setAuthError('');
+    try {
+      const token = btoa(`${username}:${password}`);
+      const res = await fetch(`/api/admin/attendance?id=${selectedAttIds.join(',')}&permanent=true`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Basic ${token}` }
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setSelectedAttIds([]);
+        setSuccessMsg('선택한 기록들이 최종 영구 삭제되었습니다.');
+        fetchAttendanceRecords();
+      } else {
+        setAuthError(result.message || '영구 삭제 실패');
+      }
+    } catch (e) {
+      setAuthError('서버 연결 오류');
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
   // ----------------------------------------------------
   // Filters
   // ----------------------------------------------------
@@ -943,9 +1060,9 @@ export default function Home() {
                 className="admin-banner admin-banner-success"
                 style={{
                   position: 'fixed',
-                  bottom: '30px',
-                  right: '30px',
-                  zIndex: 9999,
+                  top: '80px',
+                  right: '24px',
+                  zIndex: 99,
                   margin: 0,
                   maxWidth: '380px',
                   background: 'rgba(13, 27, 24, 0.95)',
@@ -953,7 +1070,7 @@ export default function Home() {
                   border: '1px solid rgba(0, 230, 118, 0.3)',
                   boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.5)',
                   opacity: successVisible ? 1 : 0,
-                  transform: successVisible ? 'translateY(0) scale(1)' : 'translateY(50px) scale(0.95)',
+                  transform: successVisible ? 'translateY(0) scale(1)' : 'translateY(-50px) scale(0.95)',
                   transition: 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                 }}
               >
@@ -1434,28 +1551,145 @@ export default function Home() {
                   </button>
                 </div>
 
+                {selectedAttIds.length > 0 && (
+                  <div style={{
+                    background: 'rgba(0, 198, 255, 0.05)',
+                    border: '1px solid rgba(0, 198, 255, 0.2)',
+                    borderRadius: '12px',
+                    padding: '12px 20px',
+                    marginBottom: '20px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    animation: 'fadeIn 0.2s ease-out'
+                  }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>
+                      선택된 기록: <strong style={{ color: '#00c6ff', fontSize: '1rem' }}>{selectedAttIds.length}</strong>개
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {dashboardTab === 'attendance' ? (
+                        <>
+                          {filteredAttendance.filter(r => selectedAttIds.includes(r.id)).every(r => r.original_record) && (
+                            <button 
+                              onClick={handleBatchRevert} 
+                              style={{ 
+                                padding: '8px 16px', 
+                                fontSize: '0.8rem', 
+                                background: '#ff9100', 
+                                color: '#fff', 
+                                border: 'none', 
+                                borderRadius: '6px', 
+                                cursor: 'pointer', 
+                                fontWeight: 'bold' 
+                              }}
+                            >
+                              🔄 선택 원상복귀
+                            </button>
+                          )}
+                          <button 
+                            onClick={handleBatchDelete} 
+                            style={{ 
+                              padding: '8px 16px', 
+                              fontSize: '0.8rem', 
+                              background: '#ff5252', 
+                              color: '#fff', 
+                              border: 'none', 
+                              borderRadius: '6px', 
+                              cursor: 'pointer', 
+                              fontWeight: 'bold' 
+                            }}
+                          >
+                            🗑️ 선택 삭제 (휴지통 이동)
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={handleBatchRestore} 
+                            style={{ 
+                              padding: '8px 16px', 
+                              fontSize: '0.8rem', 
+                              background: '#00e676', 
+                              color: '#fff', 
+                              border: 'none', 
+                              borderRadius: '6px', 
+                              cursor: 'pointer', 
+                              fontWeight: 'bold' 
+                            }}
+                          >
+                            🟢 선택 복원
+                          </button>
+                          <button 
+                            onClick={handleBatchPermanentDelete} 
+                            style={{ 
+                              padding: '8px 16px', 
+                              fontSize: '0.8rem', 
+                              background: '#ff5252', 
+                              color: '#fff', 
+                              border: 'none', 
+                              borderRadius: '6px', 
+                              cursor: 'pointer', 
+                              fontWeight: 'bold' 
+                            }}
+                          >
+                            🗑️ 선택 영구 삭제
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="admin-table-panel">
                   <div className="admin-table-scroll">
                     <table className="admin-table">
                       <thead>
                         <tr>
+                          <th style={{ width: '5%', textAlign: 'center' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={filteredAttendance.length > 0 && selectedAttIds.length === filteredAttendance.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedAttIds(filteredAttendance.map(r => r.id));
+                                } else {
+                                  setSelectedAttIds([]);
+                                }
+                              }}
+                              style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
+                            />
+                          </th>
                           <th style={{ width: '15%' }}>날짜</th>
                           <th style={{ width: '12%' }}>학번</th>
                           <th style={{ width: '15%' }}>이름</th>
                           <th style={{ width: '13%' }}>구분</th>
                           <th style={{ width: '13%' }}>전송 시간</th>
                           <th style={{ width: '17%' }}>결과</th>
-                          <th style={{ width: '15%' }}>관리</th>
+                          <th style={{ width: '10%' }}>관리</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredAttendance.length === 0 ? (
                           <tr>
-                            <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>출결 기록이 존재하지 않습니다.</td>
+                            <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>출결 기록이 존재하지 않습니다.</td>
                           </tr>
                         ) : (
                           filteredAttendance.map((rec) => (
                             <tr key={rec.id}>
+                              <td style={{ textAlign: 'center' }}>
+                                <input 
+                                  type="checkbox" 
+                                  checked={selectedAttIds.includes(rec.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedAttIds(prev => [...prev, rec.id]);
+                                    } else {
+                                      setSelectedAttIds(prev => prev.filter(id => id !== rec.id));
+                                    }
+                                  }}
+                                  style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
+                                />
+                              </td>
                               <td>{rec.date}</td>
                               <td className="admin-table-student-id">{rec.student_id}</td>
                               <td className="admin-table-name">

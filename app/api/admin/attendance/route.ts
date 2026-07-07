@@ -59,10 +59,11 @@ export async function PUT(request: Request) {
 
     // 1. 복원 처리 (휴지통에서 복구)
     if (action === 'restore') {
+      const idList = Array.isArray(id) ? id : [id];
       const { error } = await supabase
         .from('attendance_records')
         .update({ deleted_at: null })
-        .eq('id', id);
+        .in('id', idList);
 
       if (error) {
         console.error('Error restoring attendance record:', error);
@@ -79,52 +80,46 @@ export async function PUT(request: Request) {
 
     // 2. 원상복귀 처리 (수정된 기록을 원래대로)
     if (action === 'revert') {
+      const idList = Array.isArray(id) ? id : [id];
       // 현재 기록 조회
-      const { data: current, error: fetchErr } = await supabase
+      const { data: currents, error: fetchErr } = await supabase
         .from('attendance_records')
         .select('*')
-        .eq('id', id)
-        .single();
+        .in('id', idList);
 
-      if (fetchErr || !current) {
+      if (fetchErr || !currents || currents.length === 0) {
         return new NextResponse(
           JSON.stringify({ success: false, message: '기록을 찾을 수 없습니다.' }),
           { status: 404, headers: getCorsHeaders() }
         );
       }
 
-      if (!current.original_record) {
-        return new NextResponse(
-          JSON.stringify({ success: false, message: '원래 기록 정보가 없습니다.' }),
-          { status: 400, headers: getCorsHeaders() }
-        );
-      }
-
       try {
-        const orig = JSON.parse(current.original_record);
-        const { error } = await supabase
-          .from('attendance_records')
-          .update({
-            date: orig.date,
-            type: orig.type,
-            time: orig.time,
-            result: orig.result,
-            wifi_ssid: orig.wifi_ssid || '',
-            gps_status: orig.gps_status || '',
-            original_record: null
-          })
-          .eq('id', id);
+        const updatePromises = currents.map(current => {
+          if (!current.original_record) return Promise.resolve();
+          const orig = JSON.parse(current.original_record);
+          return supabase
+            .from('attendance_records')
+            .update({
+              date: orig.date,
+              type: orig.type,
+              time: orig.time,
+              result: orig.result,
+              wifi_ssid: orig.wifi_ssid || '',
+              gps_status: orig.gps_status || '',
+              original_record: null
+            })
+            .eq('id', current.id);
+        });
 
-        if (error) {
-          throw error;
-        }
+        await Promise.all(updatePromises);
 
         return new NextResponse(
           JSON.stringify({ success: true, message: '원상복귀 완료되었습니다.' }),
           { status: 200, headers: getCorsHeaders() }
         );
       } catch (err: any) {
-        console.error('Error reverting attendance record:', err);
+        console.error('Error reverting attendance records:', err);
         return new NextResponse(
           JSON.stringify({ success: false, message: '원상복귀 처리 실패', error: err.message }),
           { status: 500, headers: getCorsHeaders() }
@@ -225,15 +220,17 @@ export async function DELETE(request: Request) {
       );
     }
 
+    const idList = id.split(',');
+
     if (permanent) {
       // 영구 삭제
       const { error } = await supabase
         .from('attendance_records')
         .delete()
-        .eq('id', id);
+        .in('id', idList);
 
       if (error) {
-        console.error('Error permanently deleting attendance record:', error);
+        console.error('Error permanently deleting attendance records:', error);
         return new NextResponse(
           JSON.stringify({ success: false, message: '데이터베이스 영구 삭제 실패', error: error.message }),
           { status: 500, headers: getCorsHeaders() }
@@ -248,10 +245,10 @@ export async function DELETE(request: Request) {
       const { error } = await supabase
         .from('attendance_records')
         .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id);
+        .in('id', idList);
 
       if (error) {
-        console.error('Error soft deleting attendance record:', error);
+        console.error('Error soft deleting attendance records:', error);
         return new NextResponse(
           JSON.stringify({ success: false, message: '데이터베이스 삭제 실패', error: error.message }),
           { status: 500, headers: getCorsHeaders() }
