@@ -69,6 +69,7 @@ export default function Home() {
   const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [successVisible, setSuccessVisible] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -83,6 +84,22 @@ export default function Home() {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [selectedAttRecord, setSelectedAttRecord] = useState<any | null>(null);
   const [formAttType, setFormAttType] = useState('');
+
+  useEffect(() => {
+    if (successMsg) {
+      setSuccessVisible(true);
+      const fadeTimer = setTimeout(() => {
+        setSuccessVisible(false);
+      }, 4500);
+      const clearTimer = setTimeout(() => {
+        setSuccessMsg('');
+      }, 5000);
+      return () => {
+        clearTimeout(fadeTimer);
+        clearTimeout(clearTimer);
+      };
+    }
+  }, [successMsg]);
 
   // 1. Initial configuration load & Session restoration
   useEffect(() => {
@@ -661,13 +678,13 @@ export default function Home() {
   );
 
   const getTypeBadgeStyle = (typeStr: string) => {
-    if (typeStr.includes('정시등교') || typeStr.includes('정시 등교')) {
+    if (typeStr.includes('정시등교') || typeStr.includes('정시 등교') || typeStr.includes('하교')) {
       return {
         background: 'rgba(0, 230, 118, 0.1)',
         color: '#00e676',
         border: '1px solid rgba(0, 230, 118, 0.2)'
       };
-    } else if (typeStr === '등교' || typeStr.includes('하교')) {
+    } else if (typeStr === '등교') {
       return {
         background: 'rgba(0, 198, 255, 0.1)',
         color: '#00c6ff',
@@ -922,7 +939,14 @@ export default function Home() {
               </div>
             )}
             {successMsg && (
-              <div className="admin-banner admin-banner-success">
+              <div 
+                className="admin-banner admin-banner-success"
+                style={{
+                  opacity: successVisible ? 1 : 0,
+                  transform: successVisible ? 'translateY(0)' : 'translateY(-10px)',
+                  transition: 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out',
+                }}
+              >
                 ✓ {successMsg}
               </div>
             )}

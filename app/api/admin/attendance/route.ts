@@ -147,6 +147,14 @@ export async function PUT(request: Request) {
       );
     }
 
+    // 만약 현재 기록의 type과 입력받은 type이 동일하다면 DB를 업데이트할 필요가 없음
+    if (current.type === type) {
+      return new NextResponse(
+        JSON.stringify({ success: true, message: '변경된 내용이 없습니다.' }),
+        { status: 200, headers: getCorsHeaders() }
+      );
+    }
+
     let originalRecordVal = current.original_record;
     if (!originalRecordVal) {
       // 최초 수정이므로 현재 값을 original_record에 저장
@@ -159,6 +167,16 @@ export async function PUT(request: Request) {
         gps_status: current.gps_status || ''
       };
       originalRecordVal = JSON.stringify(origData);
+    } else {
+      // 이미 수정된 적이 있는 경우: 만약 변경하려는 type이 최초 원본 type과 같다면 원상복귀(original_record = null)로 처리
+      try {
+        const orig = JSON.parse(originalRecordVal);
+        if (orig.type === type) {
+          originalRecordVal = null;
+        }
+      } catch (e) {
+        console.error('Failed to parse original_record:', e);
+      }
     }
 
     const { error } = await supabase
