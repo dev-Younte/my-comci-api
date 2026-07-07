@@ -968,7 +968,19 @@ export default function Home() {
               borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
               paddingBottom: '12px',
               marginBottom: '4px',
-              flexWrap: 'wrap'
+              flexWrap: 'wrap',
+              position: 'sticky',
+              top: '71px',
+              zIndex: 90,
+              background: 'rgba(8, 9, 13, 0.85)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              paddingTop: '12px',
+              marginTop: '-12px',
+              marginLeft: '-20px',
+              marginRight: '-20px',
+              paddingLeft: '20px',
+              paddingRight: '20px',
             }}>
               <button
                 onClick={() => setDashboardTab('timetable')}
