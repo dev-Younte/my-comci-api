@@ -942,9 +942,19 @@ export default function Home() {
               <div 
                 className="admin-banner admin-banner-success"
                 style={{
+                  position: 'fixed',
+                  bottom: '30px',
+                  right: '30px',
+                  zIndex: 9999,
+                  margin: 0,
+                  maxWidth: '380px',
+                  background: 'rgba(13, 27, 24, 0.95)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(0, 230, 118, 0.3)',
+                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.5)',
                   opacity: successVisible ? 1 : 0,
-                  transform: successVisible ? 'translateY(0)' : 'translateY(-10px)',
-                  transition: 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out',
+                  transform: successVisible ? 'translateY(0) scale(1)' : 'translateY(50px) scale(0.95)',
+                  transition: 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                 }}
               >
                 ✓ {successMsg}
