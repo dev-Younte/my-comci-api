@@ -375,15 +375,15 @@ export default function Home() {
     setAuthError('');
     setSuccessMsg('');
 
-    const url = modalMode === 'add' ? '/api/admin/add' : '/api/admin/update';
+    const method = modalMode === 'add' ? 'POST' : 'PUT';
     const payload = modalMode === 'add' 
       ? { studentId: formStudentId, name: formName, phone: formPhone }
       : { id: selectedStudentId, studentId: formStudentId, name: formName, phone: formPhone };
 
     try {
       const token = btoa(`${username}:${password}`);
-      const res = await fetch(url, {
-        method: 'POST',
+      const res = await fetch('/api/admin/students', {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Basic ${token}`
@@ -416,13 +416,11 @@ export default function Home() {
 
     try {
       const token = btoa(`${username}:${password}`);
-      const res = await fetch('/api/admin/delete', {
-        method: 'POST',
+      const res = await fetch(`/api/admin/students?id=${id}`, {
+        method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Basic ${token}`
-        },
-        body: JSON.stringify({ id })
+        }
       });
       const result = await res.json();
       if (res.ok && result.success) {
@@ -448,13 +446,13 @@ export default function Home() {
     setSuccessMsg('');
     try {
       const token = btoa(`${username}:${password}`);
-      const res = await fetch('/api/admin/reset', {
-        method: 'POST',
+      const res = await fetch('/api/admin/students', {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Basic ${token}`
         },
-        body: JSON.stringify({ studentId })
+        body: JSON.stringify({ action: 'reset', studentId })
       });
       const result = await res.json();
       if (res.ok && result.success) {
