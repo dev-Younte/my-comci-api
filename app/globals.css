@@ -27,8 +27,7 @@
 }
 
 html, body {
-  overscroll-behavior: none;
-  overflow-x: hidden;
+  overscroll-behavior: contain;
 }
 
 body {
@@ -153,6 +152,7 @@ body {
   color: var(--text-primary);
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 .admin-header {
