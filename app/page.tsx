@@ -661,11 +661,17 @@ export default function Home() {
   );
 
   const getTypeBadgeStyle = (typeStr: string) => {
-    if (typeStr.includes('정시등교') || typeStr === '등교') {
+    if (typeStr.includes('정시등교') || typeStr.includes('정시 등교')) {
       return {
         background: 'rgba(0, 230, 118, 0.1)',
         color: '#00e676',
         border: '1px solid rgba(0, 230, 118, 0.2)'
+      };
+    } else if (typeStr === '등교' || typeStr.includes('하교')) {
+      return {
+        background: 'rgba(0, 198, 255, 0.1)',
+        color: '#00c6ff',
+        border: '1px solid rgba(0, 198, 255, 0.2)'
       };
     } else if (typeStr.includes('미인정 지각') || typeStr.includes('미인정 조퇴') || typeStr === '지각') {
       return {
@@ -678,12 +684,6 @@ export default function Home() {
         background: 'rgba(255, 196, 0, 0.1)',
         color: '#ffc400',
         border: '1px solid rgba(255, 196, 0, 0.2)'
-      };
-    } else if (typeStr.includes('하교')) {
-      return {
-        background: 'rgba(0, 198, 255, 0.1)',
-        color: '#00c6ff',
-        border: '1px solid rgba(0, 198, 255, 0.2)'
       };
     } else {
       return {
@@ -1662,6 +1662,7 @@ export default function Home() {
                     style={{ background: 'var(--bg-card)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px 14px', borderRadius: '8px' }}
                     required
                   >
+                    <option value="정시 등교">정시 등교</option>
                     <option value="등교">등교</option>
                     <option value="인정 지각">인정 지각</option>
                     <option value="미인정 지각">미인정 지각</option>
