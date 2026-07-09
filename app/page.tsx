@@ -32,6 +32,9 @@ interface ApiResponse {
   error?: string;
 }
 
+const DEFAULT_LOCATION_SUBJECTS = ["공국", "공영", "공수", "통사", "통과 A", "통과 B", "과탐실", "한국사", "한문", "로봇", "체육", "진로"];
+const PRESET_LOCATION_OPTIONS = ["교실", "제1과학실", "제2과학실", "제3과학실", "창의공학실", "진로실", "체육관", "운동장"];
+
 export default function Home() {
   // Authentication States
   const [username, setUsername] = useState('');
@@ -51,6 +54,7 @@ export default function Home() {
   const [locationsList, setLocationsList] = useState<any[]>([]);
   const [selectedLocationClass, setSelectedLocationClass] = useState<string | null>(null); // e.g. "1-01"
   const [formLocations, setFormLocations] = useState<Record<string, string>>({}); // { subject: location }
+  const [customLocationInputs, setCustomLocationInputs] = useState<Record<string, string>>({});
 
   // Tab 1: Timetable States
   const [schoolCode, setSchoolCode] = useState('27121');
@@ -209,6 +213,23 @@ export default function Home() {
     e.preventDefault();
     if (!selectedLocationClass) return;
 
+    const normalizedLocations: Record<string, string> = {};
+    for (const [subject, location] of Object.entries(formLocations)) {
+      const selectedLocation = location.trim();
+      const usesCustomInput = selectedLocation === '기타' || !PRESET_LOCATION_OPTIONS.includes(selectedLocation);
+
+      if (usesCustomInput) {
+        const customLocation = (customLocationInputs[subject] || (selectedLocation !== '기타' ? selectedLocation : '')).trim();
+        if (!customLocation) {
+          setAuthError(`${subject} 과목의 직접 장소명을 입력해주세요.`);
+          return;
+        }
+        normalizedLocations[subject] = customLocation;
+      } else {
+        normalizedLocations[subject] = selectedLocation;
+      }
+    }
+
     setGlobalLoading(true);
     setAuthError('');
     try {
@@ -221,13 +242,14 @@ export default function Home() {
         },
         body: JSON.stringify({
           gradeClass: selectedLocationClass,
-          locations: formLocations
+          locations: normalizedLocations
         })
       });
 
       const result = await res.json();
       if (res.ok && result.success) {
         setSelectedLocationClass(null);
+        setCustomLocationInputs({});
         setSuccessMsg('수업 위치 정보가 성공적으로 저장되었습니다.');
         fetchLocations();
       } else {
@@ -1288,12 +1310,17 @@ export default function Home() {
                         onClick={() => {
                           const currentLocs = locationsList.filter(l => l.grade_class === classId);
                           const initialForm: Record<string, string> = {};
-                          const defaultSubjects = ["공국", "공영", "공수", "통사", "통과 A", "통과 B", "과탐실", "한국사", "한문", "로봇", "체육", "진로"];
-                          defaultSubjects.forEach(sub => {
+                          const initialCustomInputs: Record<string, string> = {};
+                          DEFAULT_LOCATION_SUBJECTS.forEach(sub => {
                             const match = currentLocs.find(l => l.subject === sub);
-                            initialForm[sub] = match ? match.location : "교실";
+                            const savedLocation = match ? match.location : "교실";
+                            initialForm[sub] = savedLocation;
+                            if (savedLocation && savedLocation !== '기타' && !PRESET_LOCATION_OPTIONS.includes(savedLocation)) {
+                              initialCustomInputs[sub] = savedLocation;
+                            }
                           });
                           setFormLocations(initialForm);
+                          setCustomLocationInputs(initialCustomInputs);
                           setSelectedLocationClass(classId);
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
@@ -1713,46 +1740,86 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {["공국", "공영", "공수", "통사", "통과 A", "통과 B", "과탐실", "한국사", "한문", "로봇", "체육", "진로"].map(sub => (
-                      <tr key={sub}>
-                        <td style={{ textAlign: 'left', paddingLeft: '12px', fontWeight: 'bold' }}>{sub}</td>
-                        <td style={{ textAlign: 'left', paddingLeft: '12px' }}>
-                          <select 
-                            value={formLocations[sub] || '교실'}
-                            onChange={(e) => setFormLocations({
-                              ...formLocations,
-                              [sub]: e.target.value
-                            })}
-                            className="admin-input-text"
-                            style={{ 
-                              background: 'var(--bg-card)', 
-                              color: '#fff', 
-                              border: '1px solid rgba(255,255,255,0.1)', 
-                              padding: '6px 12px', 
-                              borderRadius: '6px',
-                              width: '100%',
-                              maxWidth: '220px'
-                            }}
-                          >
-                            <option value="교실">교실</option>
-                            <option value="제1과학실">제1과학실</option>
-                            <option value="제2과학실">제2과학실</option>
-                            <option value="제3과학실">제3과학실</option>
-                            <option value="창의공학실">창의공학실</option>
-                            <option value="진로실">진로실</option>
-                            <option value="체육관">체육관</option>
-                            <option value="운동장">운동장</option>
-                            <option value="기타">기타</option>
-                          </select>
-                        </td>
-                      </tr>
-                    ))}
+                    {DEFAULT_LOCATION_SUBJECTS.map(sub => {
+                      const savedLocation = formLocations[sub] || '교실';
+                      const isCustomLocation = savedLocation === '기타' || !PRESET_LOCATION_OPTIONS.includes(savedLocation);
+                      const selectValue = isCustomLocation ? '기타' : savedLocation;
+                      const customValue = customLocationInputs[sub] ?? (savedLocation !== '기타' && isCustomLocation ? savedLocation : '');
+
+                      return (
+                        <tr key={sub}>
+                          <td style={{ textAlign: 'left', paddingLeft: '12px', fontWeight: 'bold' }}>{sub}</td>
+                          <td style={{ textAlign: 'left', paddingLeft: '12px' }}>
+                            <select 
+                              value={selectValue}
+                              onChange={(e) => {
+                                const nextLocation = e.target.value;
+                                setFormLocations({
+                                  ...formLocations,
+                                  [sub]: nextLocation
+                                });
+                                if (nextLocation !== '기타') {
+                                  const nextCustomInputs = { ...customLocationInputs };
+                                  delete nextCustomInputs[sub];
+                                  setCustomLocationInputs(nextCustomInputs);
+                                } else if (!customLocationInputs[sub]) {
+                                  setCustomLocationInputs({
+                                    ...customLocationInputs,
+                                    [sub]: savedLocation !== '기타' && !PRESET_LOCATION_OPTIONS.includes(savedLocation) ? savedLocation : ''
+                                  });
+                                }
+                              }}
+                              className="admin-input-text"
+                              style={{ 
+                                background: 'var(--bg-card)', 
+                                color: '#fff', 
+                                border: '1px solid rgba(255,255,255,0.1)', 
+                                padding: '6px 12px', 
+                                borderRadius: '6px',
+                                width: '100%',
+                                maxWidth: '220px'
+                              }}
+                            >
+                              {PRESET_LOCATION_OPTIONS.map(location => (
+                                <option key={location} value={location}>{location}</option>
+                              ))}
+                              <option value="기타">기타</option>
+                            </select>
+                            {selectValue === '기타' && (
+                              <input
+                                type="text"
+                                placeholder="직접 장소명을 입력하세요"
+                                value={customValue}
+                                onChange={(e) => setCustomLocationInputs({
+                                  ...customLocationInputs,
+                                  [sub]: e.target.value
+                                })}
+                                className="admin-input-text"
+                                style={{
+                                  marginTop: '8px',
+                                  background: 'var(--bg-card)',
+                                  color: '#fff',
+                                  border: '1px solid rgba(0, 198, 255, 0.25)',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  width: '100%',
+                                  maxWidth: '220px'
+                                }}
+                              />
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
               <div className="admin-modal-buttons" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setSelectedLocationClass(null)} className="btn-cancel">취소</button>
+                <button type="button" onClick={() => {
+                  setSelectedLocationClass(null);
+                  setCustomLocationInputs({});
+                }} className="btn-cancel">취소</button>
                 <button type="submit" className="btn-save">저장</button>
               </div>
             </form>
