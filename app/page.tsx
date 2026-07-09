@@ -1036,7 +1036,7 @@ export default function Home() {
                 className="admin-banner admin-banner-success admin-toast"
                 style={{
                   opacity: successVisible ? 1 : 0,
-                  transform: successVisible ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-12px)',
+                  transform: successVisible ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-8px)',
                 }}
               >
                 ✓ {successMsg}
