@@ -909,6 +909,18 @@ export default function Home() {
         )}
       </header>
 
+      {successMsg && (
+        <div 
+          className="admin-banner admin-banner-success admin-toast"
+          style={{
+            opacity: successVisible ? 1 : 0,
+            transform: successVisible ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-8px)',
+          }}
+        >
+          ✓ {successMsg}
+        </div>
+      )}
+
       {isAuthenticated && (
         <nav className="admin-tab-nav" aria-label="관리 콘솔 메뉴">
           <div className="admin-tab-list">
@@ -1029,17 +1041,6 @@ export default function Home() {
             {authError && (
               <div className="admin-banner admin-banner-error">
                 ⚠️ {authError}
-              </div>
-            )}
-            {successMsg && (
-              <div 
-                className="admin-banner admin-banner-success admin-toast"
-                style={{
-                  opacity: successVisible ? 1 : 0,
-                  transform: successVisible ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-8px)',
-                }}
-              >
-                ✓ {successMsg}
               </div>
             )}
 

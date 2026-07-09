@@ -531,7 +531,7 @@ body {
   position: fixed;
   top: 18px;
   left: 50%;
-  z-index: 9999;
+  z-index: 99999;
   width: auto;
   max-width: min(520px, calc(100vw - 32px));
   margin: 0;
