@@ -1033,21 +1033,10 @@ export default function Home() {
             )}
             {successMsg && (
               <div 
-                className="admin-banner admin-banner-success"
+                className="admin-banner admin-banner-success admin-toast"
                 style={{
-                  position: 'fixed',
-                  top: '132px',
-                  right: 'max(24px, calc(50% - 550px + 24px))',
-                  zIndex: 99,
-                  margin: 0,
-                  maxWidth: '380px',
-                  background: 'rgba(13, 27, 24, 0.95)',
-                  backdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(0, 230, 118, 0.3)',
-                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.5)',
                   opacity: successVisible ? 1 : 0,
-                  transform: successVisible ? 'translateY(0) scale(1)' : 'translateY(-45px) scale(0.95)',
-                  transition: 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                  transform: successVisible ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-12px)',
                 }}
               >
                 ✓ {successMsg}
