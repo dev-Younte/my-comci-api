@@ -26,10 +26,6 @@
   padding: 0;
 }
 
-html, body {
-  overscroll-behavior: contain;
-}
-
 body {
   background: var(--bg-gradient);
   color: var(--text-primary);
@@ -37,6 +33,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 /* Custom Scrollbar */
@@ -152,20 +149,18 @@ body {
   color: var(--text-primary);
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
 }
 
 .admin-header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(8, 9, 13, 0.85);
+  background: rgba(8, 9, 13, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   padding: 16px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 100;
 }
 

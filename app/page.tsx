@@ -375,15 +375,15 @@ export default function Home() {
     setAuthError('');
     setSuccessMsg('');
 
-    const method = modalMode === 'add' ? 'POST' : 'PUT';
+    const url = modalMode === 'add' ? '/api/admin/add' : '/api/admin/update';
     const payload = modalMode === 'add' 
       ? { studentId: formStudentId, name: formName, phone: formPhone }
       : { id: selectedStudentId, studentId: formStudentId, name: formName, phone: formPhone };
 
     try {
       const token = btoa(`${username}:${password}`);
-      const res = await fetch('/api/admin/students', {
-        method,
+      const res = await fetch(url, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Basic ${token}`
@@ -416,11 +416,13 @@ export default function Home() {
 
     try {
       const token = btoa(`${username}:${password}`);
-      const res = await fetch(`/api/admin/students?id=${id}`, {
-        method: 'DELETE',
+      const res = await fetch('/api/admin/delete', {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Basic ${token}`
-        }
+        },
+        body: JSON.stringify({ id })
       });
       const result = await res.json();
       if (res.ok && result.success) {
@@ -446,13 +448,13 @@ export default function Home() {
     setSuccessMsg('');
     try {
       const token = btoa(`${username}:${password}`);
-      const res = await fetch('/api/admin/students', {
-        method: 'PUT',
+      const res = await fetch('/api/admin/reset', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Basic ${token}`
         },
-        body: JSON.stringify({ action: 'reset', studentId })
+        body: JSON.stringify({ studentId })
       });
       const result = await res.json();
       if (res.ok && result.success) {
@@ -907,105 +909,6 @@ export default function Home() {
         )}
       </header>
 
-      {/* 고정 네비게이션 바 (로그인 시에만) */}
-      {isAuthenticated && (
-        <div style={{
-          position: 'sticky',
-          top: '71px',
-          zIndex: 90,
-          background: 'rgba(8, 9, 13, 0.85)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          width: '100%'
-        }}>
-          <div style={{
-            maxWidth: '1100px',
-            margin: '0 auto',
-            padding: '12px 20px',
-            display: 'flex',
-            gap: '12px',
-            flexWrap: 'wrap'
-          }}>
-            <button
-              onClick={() => setDashboardTab('timetable')}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '8px',
-                background: dashboardTab === 'timetable' ? 'rgba(0, 198, 255, 0.12)' : 'transparent',
-                border: '1px solid ' + (dashboardTab === 'timetable' ? 'rgba(0, 198, 255, 0.3)' : 'transparent'),
-                color: dashboardTab === 'timetable' ? '#00c6ff' : 'rgba(255, 255, 255, 0.6)',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
-              📅 컴시간 시간표 확인
-            </button>
-            <button
-              onClick={() => setDashboardTab('locations')}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '8px',
-                background: dashboardTab === 'locations' ? 'rgba(0, 198, 255, 0.12)' : 'transparent',
-                border: '1px solid ' + (dashboardTab === 'locations' ? 'rgba(0, 198, 255, 0.3)' : 'transparent'),
-                color: dashboardTab === 'locations' ? '#00c6ff' : 'rgba(255, 255, 255, 0.6)',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
-              📍 수업 위치 정보
-            </button>
-            <button
-              onClick={() => setDashboardTab('students')}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '8px',
-                background: dashboardTab === 'students' ? 'rgba(0, 198, 255, 0.12)' : 'transparent',
-                border: '1px solid ' + (dashboardTab === 'students' ? 'rgba(0, 198, 255, 0.3)' : 'transparent'),
-                color: dashboardTab === 'students' ? '#00c6ff' : 'rgba(255, 255, 255, 0.6)',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
-              👥 학생 명단 관리
-            </button>
-            <button
-              onClick={() => setDashboardTab('attendance')}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '8px',
-                background: dashboardTab === 'attendance' ? 'rgba(0, 198, 255, 0.12)' : 'transparent',
-                border: '1px solid ' + (dashboardTab === 'attendance' ? 'rgba(0, 198, 255, 0.3)' : 'transparent'),
-                color: dashboardTab === 'attendance' ? '#00c6ff' : 'rgba(255, 255, 255, 0.6)',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
-              📝 학생 등하교 기록 관리
-            </button>
-            <button
-              onClick={() => setDashboardTab('deleted_attendance')}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '8px',
-                background: dashboardTab === 'deleted_attendance' ? 'rgba(255, 82, 82, 0.12)' : 'transparent',
-                border: '1px solid ' + (dashboardTab === 'deleted_attendance' ? 'rgba(255, 82, 82, 0.3)' : 'transparent'),
-                color: dashboardTab === 'deleted_attendance' ? '#ff5252' : 'rgba(255, 255, 255, 0.6)',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
-              🗑️ 삭제된 기록 관리
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* 메인 뷰 */}
       <main className="admin-main">
         {!isAuthenticated ? (
@@ -1059,6 +962,92 @@ export default function Home() {
         ) : (
           /* 2. 로그인 성공 시 통합 대시보드 화면 */
           <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            
+            {/* 3단 메인 메뉴 탭 */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              paddingBottom: '12px',
+              marginBottom: '4px',
+              flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={() => setDashboardTab('timetable')}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  background: dashboardTab === 'timetable' ? 'rgba(0, 198, 255, 0.12)' : 'transparent',
+                  border: '1px solid ' + (dashboardTab === 'timetable' ? 'rgba(0, 198, 255, 0.3)' : 'transparent'),
+                  color: dashboardTab === 'timetable' ? '#00c6ff' : 'rgba(255, 255, 255, 0.6)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                📅 컴시간 시간표 확인
+              </button>
+              <button
+                onClick={() => setDashboardTab('locations')}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  background: dashboardTab === 'locations' ? 'rgba(0, 198, 255, 0.12)' : 'transparent',
+                  border: '1px solid ' + (dashboardTab === 'locations' ? 'rgba(0, 198, 255, 0.3)' : 'transparent'),
+                  color: dashboardTab === 'locations' ? '#00c6ff' : 'rgba(255, 255, 255, 0.6)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                📍 수업 위치 정보
+              </button>
+              <button
+                onClick={() => setDashboardTab('students')}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  background: dashboardTab === 'students' ? 'rgba(0, 198, 255, 0.12)' : 'transparent',
+                  border: '1px solid ' + (dashboardTab === 'students' ? 'rgba(0, 198, 255, 0.3)' : 'transparent'),
+                  color: dashboardTab === 'students' ? '#00c6ff' : 'rgba(255, 255, 255, 0.6)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                👥 학생 명단 관리
+              </button>
+              <button
+                onClick={() => setDashboardTab('attendance')}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  background: dashboardTab === 'attendance' ? 'rgba(0, 198, 255, 0.12)' : 'transparent',
+                  border: '1px solid ' + (dashboardTab === 'attendance' ? 'rgba(0, 198, 255, 0.3)' : 'transparent'),
+                  color: dashboardTab === 'attendance' ? '#00c6ff' : 'rgba(255, 255, 255, 0.6)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                📝 학생 등하교 기록 관리
+              </button>
+              <button
+                onClick={() => setDashboardTab('deleted_attendance')}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  background: dashboardTab === 'deleted_attendance' ? 'rgba(255, 82, 82, 0.12)' : 'transparent',
+                  border: '1px solid ' + (dashboardTab === 'deleted_attendance' ? 'rgba(255, 82, 82, 0.3)' : 'transparent'),
+                  color: dashboardTab === 'deleted_attendance' ? '#ff5252' : 'rgba(255, 255, 255, 0.6)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                🗑️ 삭제된 기록 관리
+              </button>
+            </div>
 
             {/* 피드백 상태 메시지 알림 배너 */}
             {authError && (
