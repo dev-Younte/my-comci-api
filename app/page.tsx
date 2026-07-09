@@ -1731,12 +1731,12 @@ export default function Home() {
             </h3>
             
             <form onSubmit={handleLocationSubmit} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
-              <div style={{ overflowY: 'auto', paddingRight: '6px', flex: 1, marginBottom: '20px' }}>
-                <table className="admin-table" style={{ width: '100%' }}>
+              <div className="admin-location-table-scroll" style={{ overflowY: 'auto', paddingRight: '6px', flex: 1, marginBottom: '20px' }}>
+                <table className="admin-table admin-location-table" style={{ width: '100%' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '40%', textAlign: 'left', paddingLeft: '12px' }}>과목 이름</th>
-                      <th style={{ width: '60%', textAlign: 'left', paddingLeft: '12px' }}>수업 진행 위치 지정</th>
+                      <th className="admin-location-subject-cell" style={{ width: '40%', textAlign: 'left', paddingLeft: '12px' }}>과목 이름</th>
+                      <th className="admin-location-control-cell" style={{ width: '60%', textAlign: 'left', paddingLeft: '12px' }}>수업 진행 위치 지정</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1748,8 +1748,9 @@ export default function Home() {
 
                       return (
                         <tr key={sub}>
-                          <td style={{ textAlign: 'left', paddingLeft: '12px', fontWeight: 'bold' }}>{sub}</td>
-                          <td style={{ textAlign: 'left', paddingLeft: '12px' }}>
+                          <td className="admin-location-subject-cell" style={{ textAlign: 'left', paddingLeft: '12px', fontWeight: 'bold' }}>{sub}</td>
+                          <td className="admin-location-control-cell" style={{ textAlign: 'left', paddingLeft: '12px' }}>
+                            <div className="admin-location-control-stack">
                             <select 
                               value={selectValue}
                               onChange={(e) => {
@@ -1769,7 +1770,7 @@ export default function Home() {
                                   });
                                 }
                               }}
-                              className="admin-input-text"
+                              className="admin-input-text admin-location-control"
                               style={{ 
                                 background: 'var(--bg-card)', 
                                 color: '#fff', 
@@ -1777,7 +1778,7 @@ export default function Home() {
                                 padding: '6px 12px', 
                                 borderRadius: '6px',
                                 width: '100%',
-                                maxWidth: '220px'
+                                maxWidth: '100%'
                               }}
                             >
                               {PRESET_LOCATION_OPTIONS.map(location => (
@@ -1794,19 +1795,20 @@ export default function Home() {
                                   ...customLocationInputs,
                                   [sub]: e.target.value
                                 })}
-                                className="admin-input-text"
+                                className="admin-input-text admin-location-control admin-location-custom-input"
                                 style={{
-                                  marginTop: '8px',
+                                  marginTop: 0,
                                   background: 'var(--bg-card)',
                                   color: '#fff',
                                   border: '1px solid rgba(0, 198, 255, 0.25)',
                                   padding: '6px 12px',
                                   borderRadius: '6px',
                                   width: '100%',
-                                  maxWidth: '220px'
+                                  maxWidth: '100%'
                                 }}
                               />
                             )}
+                            </div>
                           </td>
                         </tr>
                       );

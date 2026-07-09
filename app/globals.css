@@ -621,6 +621,57 @@ body {
   max-width: 100%;
 }
 
+.admin-location-table-scroll {
+  overflow-x: hidden;
+  min-width: 0;
+}
+
+.admin-location-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.admin-location-table th,
+.admin-location-table td {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  vertical-align: middle !important;
+}
+
+.admin-location-subject-cell {
+  width: 40%;
+  text-align: left !important;
+  padding-left: 12px !important;
+}
+
+.admin-location-control-cell {
+  width: 60%;
+  text-align: left !important;
+  padding-left: 12px !important;
+}
+
+.admin-location-control-stack {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.admin-location-control {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.admin-location-custom-input {
+  margin-top: 0 !important;
+}
+
 .admin-table tr:hover {
   background: rgba(255, 255, 255, 0.015);
 }
